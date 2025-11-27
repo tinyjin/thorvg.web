@@ -168,7 +168,7 @@
     <script type="module">
         import ThorVG from '../dist/canvas-kit.esm.js';
 
-        let tvg;
+        let TVG;
         let canvas;
         let currentFontName = 'default';
 
@@ -179,21 +179,19 @@
         }
 
         window.init = async function() {
-            const backend = document.getElementById('backend').value;
-            log(`Initializing ThorVG with ${backend} backend...`);
+            const renderer = document.getElementById('backend').value;
+            log(`Initializing ThorVG with ${renderer} backend...`);
 
             try {
-                // Initialize ThorVG
-                tvg = await ThorVG.init({
+                // Initialize ThorVG with backend
+                TVG = await ThorVG.init({
+                    renderer: renderer,
                     locateFile: (path) => '../dist/' + path
                 });
 
-                // Initialize engine (required for WebGPU)
-                await tvg.ThorVGInit(backend);
-
                 // Create canvas
-                canvas = new tvg.Canvas('#canvas', {
-                    renderer: backend,
+                canvas = new TVG.Canvas('#canvas', {
+                    renderer: renderer,
                     width: 800,
                     height: 600
                 });
@@ -230,7 +228,7 @@
                 const format = ext === 'otf' ? 'otf' : 'ttf';
 
                 // Load font using Font utility
-                tvg.Font.load(currentFontName, fontData, { format });
+                TVG.Font.load(currentFontName, fontData, { format });
 
                 log(`✓ Font "${currentFontName}" loaded successfully!`);
             } catch (error) {
@@ -257,7 +255,7 @@
             canvas.clear();
 
             // Create text object
-            const text = new tvg.Text();
+            const text = new TVG.Text();
 
             // Set font
             text.font(currentFontName);

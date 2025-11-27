@@ -18,6 +18,7 @@ import ThorVGModuleFactory from '../dist/thorvg.js';
 
 export interface InitOptions {
   locateFile?: (path: string) => string;
+  renderer?: 'sw' | 'gl' | 'wg';
 }
 
 export interface ThorVGNamespace {
@@ -30,7 +31,6 @@ export interface ThorVGNamespace {
   LinearGradient: typeof LinearGradient;
   RadialGradient: typeof RadialGradient;
   Font: typeof Font;
-  ThorVGInit(engineType?: 'sw' | 'gl' | 'wg'): Promise<void>;
   term(): void;
 }
 
@@ -38,11 +38,11 @@ let Module: ThorVGModule | null = null;
 let initialized = false;
 
 /**
- * Initialize ThorVG engine (call after loading the module)
- * For WebGPU backend, this handles async initialization
- * For SW/GL backends, this is a no-op but still recommended to call
+ * Internal function to initialize ThorVG engine
+ * For WebGPU renderer, this handles async initialization
+ * For SW/GL renderers, this is a no-op
  */
-async function ThorVGInit(engineType: 'sw' | 'gl' | 'wg' = 'sw'): Promise<void> {
+async function initEngine(engineType: 'sw' | 'gl' | 'wg' = 'gl'): Promise<void> {
   if (!Module) {
     throw new Error('ThorVG module not loaded. Call init() first.');
   }
@@ -72,7 +72,24 @@ async function ThorVGInit(engineType: 'sw' | 'gl' | 'wg' = 'sw'): Promise<void> 
 }
 
 /**
- * Initialize ThorVG WASM module
+ * Initialize ThorVG WASM module and optionally initialize the engine
+ * @param options - Initialization options
+ * @param options.locateFile - Function to locate WASM files
+ * @param options.renderer - Renderer type ('sw', 'gl', 'wg'). Default: 'gl'
+ * @returns ThorVG namespace with all classes and utilities
+ *
+ * @example
+ * // Initialize with WebGL (default)
+ * const TVG = await ThorVG.init({
+ *   locateFile: (path) => '../dist/' + path.split('/').pop()
+ * });
+ *
+ * @example
+ * // Initialize with WebGPU
+ * const TVG = await ThorVG.init({
+ *   locateFile: (path) => '../dist/' + path.split('/').pop(),
+ *   renderer: 'wg'
+ * });
  */
 async function init(options: InitOptions = {}): Promise<ThorVGNamespace> {
   if (initialized) {
@@ -80,7 +97,7 @@ async function init(options: InitOptions = {}): Promise<ThorVGNamespace> {
     return createNamespace();
   }
 
-  const { locateFile } = options;
+  const { locateFile, renderer = 'gl' } = options;
 
   // Load WASM module
   Module = await ThorVGModuleFactory({
@@ -91,7 +108,12 @@ async function init(options: InitOptions = {}): Promise<ThorVGNamespace> {
   (globalThis as any).__ThorVGModule = Module;
   initialized = true;
 
-  return createNamespace();
+  const namespace = createNamespace();
+
+  // Automatically initialize the engine with specified renderer
+  await initEngine(renderer);
+
+  return namespace;
 }
 
 /**
@@ -131,7 +153,6 @@ function createNamespace(): ThorVGNamespace {
     LinearGradient,
     RadialGradient,
     Font,
-    ThorVGInit,
     term,
   };
 }
@@ -144,7 +165,7 @@ const ThorVG = {
 export default ThorVG;
 
 // Named exports for advanced usage
-export { init, ThorVGInit, Canvas, Shape, Scene, Picture, Text, Animation, LinearGradient, RadialGradient, Font, constants };
+export { init, Canvas, Shape, Scene, Picture, Text, Animation, LinearGradient, RadialGradient, Font, constants };
 
 // Re-export types
 export type { CanvasOptions } from './canvas/Canvas';

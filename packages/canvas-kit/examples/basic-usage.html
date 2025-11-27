@@ -35,18 +35,15 @@
 
     <div class="info">
         <h3>Usage Pattern:</h3>
-        <pre><code>// 1. Load WASM module
+        <pre><code>// 1. Import and initialize ThorVG
 const ThorVG = await import('./dist/canvas-kit.esm.js');
-const tvg = await ThorVG.init();
+const TVG = await ThorVG.init({ renderer: 'sw' }); // or 'gl', 'wg'
 
-// 2. Initialize engine (for WebGPU, wait for async init)
-await tvg.ThorVGInit('sw'); // or 'gl', 'wg'
-
-// 3. Create canvas and start drawing
-const canvas = new tvg.Canvas('#canvas', {
+// 2. Create canvas and start drawing
+const canvas = new TVG.Canvas('#canvas', {
   width: 800,
   height: 600,
-  backend: 'sw'
+  renderer: 'sw'
 });</code></pre>
     </div>
 
@@ -70,7 +67,7 @@ const canvas = new tvg.Canvas('#canvas', {
     </div>
 
     <script type="module">
-        let tvg = null;
+        let TVG = null;
         let canvas = null;
 
         function log(msg) {
@@ -81,55 +78,51 @@ const canvas = new tvg.Canvas('#canvas', {
 
         window.initAndDraw = async function() {
             try {
-                const backend = document.getElementById('backend').value;
-                log(`\n=== Initializing with ${backend} backend ===`);
+                const renderer = document.getElementById('backend').value;
+                log(`\n=== Initializing with ${renderer} renderer ===`);
 
-                // Step 1: Load WASM module
-                if (!tvg) {
-                    log('1. Loading ThorVG WASM module...');
-                    const ThorVG = await import('../dist/canvas-kit.esm.js');
-                    tvg = await ThorVG.init({
+                // Step 1: Initialize ThorVG with renderer
+                if (!TVG) {
+                    log('1. Loading ThorVG WASM module and initializing engine...');
+                    const wasmModule = await import('../dist/canvas-kit.esm.js');
+                    TVG = await wasmModule.init({
+                        renderer: renderer,
                         locateFile: (path) => {
                             log(`   locateFile: ${path}`);
                             return '../dist/' + path.split('/').pop();
                         }
                     });
-                    log('✓ Module loaded');
+                    log('✓ Module loaded and engine initialized');
                 }
 
-                // Step 2: Initialize engine (especially important for WebGPU)
-                log(`2. Initializing ${backend} engine...`);
-                await tvg.ThorVGInit(backend);
-                log('✓ Engine initialized');
-
-                // Step 3: Create canvas
-                log('3. Creating canvas...');
+                // Step 2: Create canvas
+                log('2. Creating canvas...');
                 if (canvas) {
                     canvas.clear();
                 }
-                canvas = new tvg.Canvas('#canvas', {
+                canvas = new TVG.Canvas('#canvas', {
                     width: 800,
                     height: 600,
-                    backend: backend
+                    renderer: renderer
                 });
                 log('✓ Canvas created');
 
-                // Step 4: Draw shapes
-                log('4. Drawing shapes...');
+                // Step 3: Draw shapes
+                log('3. Drawing shapes...');
 
                 // Red rectangle with rounded corners
-                const rect = new tvg.Shape();
+                const rect = new TVG.Shape();
                 rect.appendRect(100, 100, 200, 150, { rx: 10, ry: 10 });
                 rect.fill(255, 0, 0, 255);
 
                 // Blue circle with black stroke
-                const circle = new tvg.Shape();
+                const circle = new TVG.Shape();
                 circle.appendCircle(500, 200, 80, 80);
                 circle.fill(0, 100, 255, 255);
                 circle.stroke({ width: 5, color: [0, 0, 0, 255] });
 
                 // Green rectangle
-                const rect2 = new tvg.Shape();
+                const rect2 = new TVG.Shape();
                 rect2.appendRect(300, 400, 150, 100);
                 rect2.fill(0, 200, 100, 255);
 
@@ -137,7 +130,6 @@ const canvas = new tvg.Canvas('#canvas', {
                 canvas.add(rect, circle, rect2);
                 canvas.render();
                 log('✓ Drawing complete!');
-
             } catch (error) {
                 log('ERROR: ' + error.message);
                 console.error(error);

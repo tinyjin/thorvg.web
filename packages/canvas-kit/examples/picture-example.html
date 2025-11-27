@@ -75,7 +75,7 @@
     <script type="module">
         import ThorVG from '../dist/canvas-kit.esm.js';
 
-        let tvg;
+        let TVG;
         let canvas;
 
         function log(msg) {
@@ -85,21 +85,19 @@
         }
 
         window.init = async function() {
-            const backend = document.getElementById('backend').value;
-            log(`Initializing ThorVG with ${backend} backend...`);
+            const renderer = document.getElementById('backend').value;
+            log(`Initializing ThorVG with ${renderer} backend...`);
 
             try {
-                // Initialize ThorVG
-                tvg = await ThorVG.init({
+                // Initialize ThorVG with backend
+                TVG = await ThorVG.init({
+                    renderer: renderer,
                     locateFile: (path) => '../dist/' + path
                 });
 
-                // Initialize engine (required for WebGPU)
-                await tvg.ThorVGInit(backend);
-
                 // Create canvas
-                canvas = new tvg.Canvas('#canvas', {
-                    renderer: backend,
+                canvas = new TVG.Canvas('#canvas', {
+                    renderer: renderer,
                     width: 800,
                     height: 600
                 });
@@ -128,14 +126,14 @@
             `;
 
             // Picture 1: Original size
-            const picture1 = new tvg.Picture();
+            const picture1 = new TVG.Picture();
             picture1.loadData(svgData, { format: 'svg' })
                 .translate(50, 50);
             canvas.add(picture1);
             log('1. SVG check mark (original size) at (50, 50)');
 
             // Picture 2: Scaled version
-            const picture2 = new tvg.Picture();
+            const picture2 = new TVG.Picture();
             picture2.loadData(svgData, { format: 'svg' })
                 .size(100, 100)
                 .translate(300, 50);
@@ -143,7 +141,7 @@
             log('2. SVG check mark (scaled 100x100) at (300, 50)');
 
             // Picture 3: Rotated and scaled
-            const picture3 = new tvg.Picture();
+            const picture3 = new TVG.Picture();
             picture3.loadData(svgData, { format: 'svg' })
                 .size(150, 150)
                 .translate(550, 50)
@@ -152,7 +150,7 @@
             log('3. SVG check mark (scaled 150x150, rotated 45°) at (550, 50)');
 
             // Picture 4: Semi-transparent
-            const picture4 = new tvg.Picture();
+            const picture4 = new TVG.Picture();
             picture4.loadData(svgData, { format: 'svg' })
                 .size(120, 120)
                 .translate(50, 300)
@@ -175,7 +173,7 @@
             `;
 
             // Picture 5: Complex SVG
-            const picture5 = new tvg.Picture();
+            const picture5 = new TVG.Picture();
             picture5.loadData(complexSvg, { format: 'svg' })
                 .size(180, 180)
                 .translate(300, 280);
@@ -220,7 +218,7 @@
                 }
 
                 // Create picture and load data
-                const picture = new tvg.Picture();
+                const picture = new TVG.Picture();
                 picture.loadData(uint8Array, { format });
 
                 // Get original size

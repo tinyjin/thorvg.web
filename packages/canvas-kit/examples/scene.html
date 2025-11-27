@@ -63,7 +63,7 @@
     </div>
 
     <script type="module">
-        let tvg = null;
+        let TVG = null;
         let canvas = null;
 
         function log(msg) {
@@ -74,54 +74,50 @@
 
         window.initAndDraw = async function() {
             try {
-                const backend = document.getElementById('backend').value;
-                log(`\n=== Initializing with ${backend} backend ===`);
+                const renderer = document.getElementById('backend').value;
+                log(`\n=== Initializing with ${renderer} backend ===`);
 
-                // Step 1: Load WASM module
-                if (!tvg) {
-                    log('1. Loading ThorVG WASM module...');
+                // Step 1: Initialize ThorVG with backend
+                if (!TVG) {
+                    log('1. Loading ThorVG WASM module and initializing engine...');
                     const ThorVG = await import('../dist/canvas-kit.esm.js');
-                    tvg = await ThorVG.init({
+                    TVG = await ThorVG.init({
+                        renderer: renderer,
                         locateFile: (path) => {
                             log(`   locateFile: ${path}`);
                             return '../dist/' + path.split('/').pop();
                         }
                     });
-                    log('✓ Module loaded');
+                    log('✓ Module loaded and engine initialized');
                 }
 
-                // Step 2: Initialize engine (especially important for WebGPU)
-                log(`2. Initializing ${backend} engine...`);
-                await tvg.ThorVGInit(backend);
-                log('✓ Engine initialized');
-
-                // Step 3: Create canvas
-                log('3. Creating canvas...');
+                // Step 2: Create canvas
+                log('2. Creating canvas...');
                 if (canvas) {
                     canvas.clear();
                 }
-                canvas = new tvg.Canvas('#canvas', {
+                canvas = new TVG.Canvas('#canvas', {
                     width: 800,
                     height: 600,
-                    backend: backend
+                    renderer: renderer
                 });
                 log('✓ Canvas created');
 
-                // Step 4: Draw scene hierarchy
-                log('4. Drawing scene hierarchy...');
+                // Step 3: Draw scene hierarchy
+                log('3. Drawing scene hierarchy...');
 
                 // Create main scene
-                const mainScene = new tvg.Scene();
+                const mainScene = new TVG.Scene();
                 log('Created main scene');
 
                 // Sub-scene 1: Two circles
-                const subScene1 = new tvg.Scene();
+                const subScene1 = new TVG.Scene();
 
-                const circle1 = new tvg.Shape();
+                const circle1 = new TVG.Shape();
                 circle1.appendCircle(0, 0, 50, 50);
                 circle1.fill(255, 100, 100, 255);
 
-                const circle2 = new tvg.Shape();
+                const circle2 = new TVG.Shape();
                 circle2.appendCircle(80, 0, 50, 50);
                 circle2.fill(100, 255, 100, 255);
 
@@ -130,13 +126,13 @@
                 log('Added sub-scene 1 with 2 circles');
 
                 // Sub-scene 2: Two rectangles with rotation
-                const subScene2 = new tvg.Scene();
+                const subScene2 = new TVG.Scene();
 
-                const rect1 = new tvg.Shape();
+                const rect1 = new TVG.Shape();
                 rect1.appendRect(0, 0, 80, 60, { rx: 10, ry: 10 });
                 rect1.fill(100, 100, 255, 255);
 
-                const rect2 = new tvg.Shape();
+                const rect2 = new TVG.Shape();
                 rect2.appendRect(100, 0, 60, 80, { rx: 10, ry: 10 });
                 rect2.fill(255, 255, 100, 255);
 
@@ -146,10 +142,10 @@
                 log('Added sub-scene 2 with 2 rectangles (rotated 15°)');
 
                 // Nested scene: Multiple triangular stars
-                const nestedScene = new tvg.Scene();
+                const nestedScene = new TVG.Scene();
 
                 for (let i = 0; i < 5; i++) {
-                    const star = new tvg.Shape();
+                    const star = new TVG.Shape();
                     // Simple star shape (triangle)
                     star.moveTo(0, -20);
                     star.lineTo(15, 20);
@@ -172,10 +168,10 @@
                 log('Added nested scene with 5 stars (semi-transparent)');
 
                 // Add gradient shape to demonstrate more features
-                const gradientShape = new tvg.Shape();
+                const gradientShape = new TVG.Shape();
                 gradientShape.appendRect(50, 400, 150, 100, { rx: 5, ry: 5 });
 
-                const gradient = new tvg.LinearGradient(0, 0, 150, 0);
+                const gradient = new TVG.LinearGradient(0, 0, 150, 0);
                 gradient.addStop(0.0, [255, 0, 0, 255]);
                 gradient.addStop(0.5, [255, 255, 0, 255]);
                 gradient.addStop(1.0, [0, 0, 255, 255]);

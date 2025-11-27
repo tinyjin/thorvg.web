@@ -105,7 +105,7 @@
     <script type="module">
         import ThorVG from '../dist/canvas-kit.esm.js';
 
-        let tvg;
+        let TVG;
         let canvas;
         let animation;
         let staticScene = null;
@@ -117,19 +117,19 @@
         }
 
         function buildStaticScene() {
-            if (!tvg || !canvas) return;
+            if (!TVG || !canvas) return;
 
             // Create a static background scene to show layering
-            staticScene = new tvg.Scene();
+            staticScene = new TVG.Scene();
 
             // Background panel with shadow
-            const panelShadow = new tvg.Shape();
+            const panelShadow = new TVG.Shape();
             panelShadow.appendRect(0, 0, 760, 560, { rx: 38, ry: 38 })
                 .fill(180, 184, 193, 180)
                 .translate(26, 26);
             staticScene.add(panelShadow);
 
-            const panel = new tvg.Shape();
+            const panel = new TVG.Shape();
             panel.appendRect(0, 0, 760, 560, { rx: 32, ry: 32 })
                 .fill(255, 255, 255)
                 .translate(20, 20);
@@ -137,7 +137,7 @@
 
             // Grid lines
             for (let y = 120; y <= 520; y += 80) {
-                const hLine = new tvg.Shape();
+                const hLine = new TVG.Shape();
                 hLine.appendRect(0, 0, 720, 1.5)
                     .fill(223, 226, 235)
                     .translate(40, y);
@@ -145,7 +145,7 @@
             }
 
             for (let x = 160; x <= 680; x += 130) {
-                const vLine = new tvg.Shape();
+                const vLine = new TVG.Shape();
                 vLine.appendRect(0, 0, 2, 480)
                     .fill(230, 233, 240)
                     .translate(x, 60);
@@ -153,19 +153,19 @@
             }
 
             // Accent shapes
-            const accentRect = new tvg.Shape();
+            const accentRect = new TVG.Shape();
             accentRect.appendRect(0, 0, 180, 110, { rx: 18, ry: 18 })
                 .fill(0, 153, 255, 200)
                 .translate(80, 80);
             staticScene.add(accentRect);
 
-            const accentRect2 = new tvg.Shape();
+            const accentRect2 = new TVG.Shape();
             accentRect2.appendRect(0, 0, 140, 70, { rx: 16, ry: 16 })
                 .fill(255, 133, 0, 200)
                 .translate(540, 360);
             staticScene.add(accentRect2);
 
-            const badge = new tvg.Shape();
+            const badge = new TVG.Shape();
             badge.appendCircle(0, 0, 60)
                 .fill(64, 64, 255, 220)
                 .stroke({ width: 6, color: [255, 255, 255, 255] })
@@ -173,19 +173,19 @@
             staticScene.add(badge);
 
             // Timeline overlay
-            const timelineTrack = new tvg.Shape();
+            const timelineTrack = new TVG.Shape();
             timelineTrack.appendRect(0, 0, 640, 14, { rx: 7, ry: 7 })
                 .fill(210, 214, 224)
                 .translate(80, 500);
             staticScene.add(timelineTrack);
 
-            const timelineProgress = new tvg.Shape();
+            const timelineProgress = new TVG.Shape();
             timelineProgress.appendRect(0, 0, 360, 14, { rx: 7, ry: 7 })
                 .fill(0, 153, 255)
                 .translate(80, 500);
             staticScene.add(timelineProgress);
 
-            const timelineKnob = new tvg.Shape();
+            const timelineKnob = new TVG.Shape();
             timelineKnob.appendCircle(0, 0, 18)
                 .fill(255, 255, 255)
                 .stroke({ width: 4, color: [0, 153, 255, 255] })
@@ -203,21 +203,19 @@
         }
 
         window.init = async function() {
-            const backend = document.getElementById('backend').value;
-            log(`Initializing ThorVG with ${backend} backend...`);
+            const renderer = document.getElementById('backend').value;
+            log(`Initializing ThorVG with ${renderer} backend...`);
 
             try {
-                // Initialize ThorVG
-                tvg = await ThorVG.init({
+                // Initialize ThorVG with backend
+                TVG = await ThorVG.init({
+                    renderer: renderer,
                     locateFile: (path) => '../dist/' + path
                 });
 
-                // Initialize engine (required for WebGPU)
-                await tvg.ThorVGInit(backend);
-
                 // Create canvas
-                canvas = new tvg.Canvas('#canvas', {
-                    renderer: backend,
+                canvas = new TVG.Canvas('#canvas', {
+                    renderer: renderer,
                     width: 800,
                     height: 600
                 });
@@ -256,7 +254,7 @@
                 const lottieData = new Uint8Array(arrayBuffer);
 
                 // Create new animation
-                animation = new tvg.Animation();
+                animation = new TVG.Animation();
 
                 // Load the Lottie data
                 animation.load(lottieData);
