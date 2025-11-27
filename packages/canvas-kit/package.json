@@ -1,0 +1,57 @@
+{
+  "name": "@thorvg/canvas-kit",
+  "version": "0.1.0",
+  "description": "A TypeScript Canvas API for ThorVG - High-performance vector graphics rendering",
+  "main": "./dist/canvas-kit.cjs.js",
+  "module": "./dist/canvas-kit.esm.js",
+  "types": "./dist/canvas-kit.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/canvas-kit.esm.js",
+      "require": "./dist/canvas-kit.cjs.js",
+      "types": "./dist/canvas-kit.d.ts"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist/",
+    "!dist/**/thorvg.js"
+  ],
+  "scripts": {
+    "build": "npm run clean && sh ./wasm_setup.sh && tsup",
+    "build:watch": "npm run clean && sh ./wasm_setup.sh && tsup --watch",
+    "clean": "rm -rf dist && mkdir dist && touch dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint ./src --ext .ts",
+    "lint:fix": "eslint ./src --ext .ts --fix",
+    "version": "sed -n -e 4p ./thorvg/meson.build | sed 's/..$//' | sed -r 's/.{19}//'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thorvg/thorvg.web.git",
+    "directory": "packages/canvas-kit"
+  },
+  "author": "Jinny You <jinny@lottiefiles.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/thorvg/thorvg.web/issues"
+  },
+  "homepage": "https://thorvg.org",
+  "keywords": [
+    "thorvg",
+    "canvas",
+    "vector graphics",
+    "webgpu",
+    "webgl",
+    "wasm",
+    "2d graphics"
+  ],
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.4.0",
+    "eslint": "^8.0.1",
+    "tsup": "^8.0.0",
+    "typescript": "*"
+  }
+}

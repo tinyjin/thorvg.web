@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThorVG Canvas Kit - Basic Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f0f0f0;
+        }
+        h1 {
+            color: #333;
+        }
+        #canvas {
+            border: 1px solid #ccc;
+            background: white;
+            display: block;
+            margin: 20px 0;
+        }
+        .info {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>ThorVG Canvas Kit - Basic Example</h1>
+
+    <div class="info">
+        <p><strong>Renderer:</strong> <span id="renderer">Loading...</span></p>
+        <p>This example demonstrates the TypeScript API for ThorVG Canvas Kit.</p>
+    </div>
+
+    <canvas id="canvas" width="800" height="600"></canvas>
+
+    <script type="module">
+        // Import ThorVG (adjust path based on your setup)
+        import ThorVG from '../dist/canvas-kit.esm.js';
+
+        async function main() {
+            try {
+                // Initialize ThorVG
+                const TVG = await ThorVG.init({
+                    locateFile: (path) => `../dist/${path}`
+                });
+
+                // Create canvas with auto-detected renderer
+                const canvas = new TVG.Canvas('#canvas', {
+                    renderer: 'auto',
+                    width: 800,
+                    height: 600
+                });
+
+                // Display renderer type
+                document.getElementById('renderer').textContent = canvas.backend;
+
+                // Create a red rectangle with rounded corners
+                const rect = new TVG.Shape()
+                    .appendRect(0, 0, 200, 150, { rx: 10, ry: 10 })
+                    .fill(255, 0, 0, 255)
+                    .translate(100, 100);
+
+                // Create a blue circle
+                const circle = new TVG.Shape()
+                    .appendCircle(0, 0, 80, 80)
+                    .fill(0, 100, 255, 255)
+                    .translate(500, 200);
+
+                // Create a gradient-filled shape
+                const gradient = new TVG.LinearGradient(0, 0, 200, 0)
+                    .addStop(0, [255, 0, 0, 255])
+                    .addStop(0.5, [255, 255, 0, 255])
+                    .addStop(1, [0, 0, 255, 255])
+                    .spread('pad');
+
+                const gradientRect = new TVG.Shape()
+                    .appendRect(0, 0, 200, 100)
+                    .fill(gradient)
+                    .translate(250, 400);
+
+                // Create a scene with multiple shapes
+                const scene = new TVG.Scene()
+                    .opacity(0.8)
+                    .translate(0, 0);
+
+                const sceneShape1 = new TVG.Shape()
+                    .appendCircle(0, 0, 50, 50)
+                    .fill(0, 255, 0, 255)
+                    .translate(600, 450);
+
+                const sceneShape2 = new TVG.Shape()
+                    .appendRect(0, 0, 100, 100)
+                    .fill(255, 128, 0, 255)
+                    .translate(650, 400)
+                    .rotate(45);
+
+                scene.add(sceneShape1, sceneShape2);
+
+                // Add all shapes to canvas and render
+                canvas.add(rect, circle, gradientRect, scene);
+                canvas.render();
+
+                console.log('ThorVG Canvas Kit initialized successfully!');
+
+                // Cleanup example (commented out - normally you'd call this on page unload)
+                // canvas.destroy();  // Destroy canvas but keep module loaded
+                // TVG.term();        // Terminate entire WASM module
+
+            } catch (error) {
+                console.error('Failed to initialize ThorVG:', error);
+                document.getElementById('renderer').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        main();
+    </script>
+</body>
+</html>
