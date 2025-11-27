@@ -202,9 +202,26 @@
                 // Clear canvas first
                 canvas.clear();
 
-                // Create picture and load file
+                // User handles file reading
+                const arrayBuffer = await file.arrayBuffer();
+                const uint8Array = new Uint8Array(arrayBuffer);
+
+                // Determine format from file extension
+                let format = 'svg';
+                const ext = file.name.split('.').pop()?.toLowerCase();
+                if (ext === 'jpg' || ext === 'jpeg') {
+                    format = 'jpg';
+                } else if (ext === 'png') {
+                    format = 'png';
+                } else if (ext === 'webp') {
+                    format = 'webp';
+                } else if (ext === 'svg') {
+                    format = 'svg';
+                }
+
+                // Create picture and load data
                 const picture = new tvg.Picture();
-                await picture.loadFile(file);
+                picture.loadData(uint8Array, { format });
 
                 // Get original size
                 const originalSize = picture.size();

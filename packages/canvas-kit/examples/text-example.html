@@ -218,11 +218,19 @@
             log(`Loading font: ${file.name}...`);
 
             try {
+                // User handles file reading
+                const arrayBuffer = await file.arrayBuffer();
+                const fontData = new Uint8Array(arrayBuffer);
+
                 // Extract font name (without extension)
                 currentFontName = file.name.replace(/\.[^/.]+$/, '');
 
+                // Determine format from file extension
+                const ext = file.name.split('.').pop()?.toLowerCase();
+                const format = ext === 'otf' ? 'otf' : 'ttf';
+
                 // Load font using Font utility
-                await tvg.Font.loadFile(currentFontName, file);
+                tvg.Font.load(currentFontName, fontData, { format });
 
                 log(`✓ Font "${currentFontName}" loaded successfully!`);
             } catch (error) {

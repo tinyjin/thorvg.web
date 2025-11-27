@@ -25,9 +25,12 @@ export interface PictureSize {
 }
 
 export class Picture extends Paint {
-  constructor() {
+  constructor(ptr?: number) {
     const Module = getModule();
-    const ptr = Module._tvg_picture_new();
+    if (!ptr) {
+      ptr = Module._tvg_picture_new();
+    }
+
     super(ptr, pictureRegistry);
   }
 
@@ -117,66 +120,4 @@ export class Picture extends Paint {
     }
   }
 
-  /**
-   * Load an image file from a File or Blob object (browser only)
-   * Automatically detects format from file extension or MIME type
-   * @param file - File or Blob to load
-   */
-  public async loadFile(file: File | Blob): Promise<this> {
-    const arrayBuffer = await file.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
-
-    // Try to determine format
-    let format: PictureFormat = 'svg';
-    if (file instanceof File) {
-      const ext = file.name.split('.').pop()?.toLowerCase();
-      if (ext === 'jpg' || ext === 'jpeg') {
-        format = 'jpg';
-      } else if (ext === 'png') {
-        format = 'png';
-      } else if (ext === 'webp') {
-        format = 'webp';
-      } else if (ext === 'svg') {
-        format = 'svg';
-      } else if (ext === 'json') {
-        format = 'json'; // Lottie
-      }
-    }
-
-    return this.loadData(uint8Array, { format });
-  }
-
-  /**
-   * Load an image from a URL (browser only)
-   * @param url - URL to fetch the image from
-   * @param options - Load options
-   */
-  public async loadUrl(url: string, options: LoadDataOptions = {}): Promise<this> {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
-    }
-
-    const arrayBuffer = await response.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
-
-    // Try to determine format from URL if not provided
-    let format = options.format;
-    if (!format) {
-      const ext = url.split('.').pop()?.toLowerCase().split('?')[0];
-      if (ext === 'jpg' || ext === 'jpeg') {
-        format = 'jpg';
-      } else if (ext === 'png') {
-        format = 'png';
-      } else if (ext === 'webp') {
-        format = 'webp';
-      } else if (ext === 'svg') {
-        format = 'svg';
-      } else if (ext === 'json') {
-        format = 'json';
-      }
-    }
-
-    return this.loadData(uint8Array, { ...options, format });
-  }
 }

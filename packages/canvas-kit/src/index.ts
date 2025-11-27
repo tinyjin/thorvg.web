@@ -8,6 +8,7 @@ import { Shape } from './paint/Shape';
 import { Scene } from './paint/Scene';
 import { Picture } from './paint/Picture';
 import { Text } from './paint/Text';
+import { Animation } from './animation/Animation';
 import { LinearGradient } from './fill/LinearGradient';
 import { RadialGradient } from './fill/RadialGradient';
 import { Font } from './core/Font';
@@ -25,6 +26,7 @@ export interface ThorVGNamespace {
   Scene: typeof Scene;
   Picture: typeof Picture;
   Text: typeof Text;
+  Animation: typeof Animation;
   LinearGradient: typeof LinearGradient;
   RadialGradient: typeof RadialGradient;
   Font: typeof Font;
@@ -125,6 +127,7 @@ function createNamespace(): ThorVGNamespace {
     Scene,
     Picture,
     Text,
+    Animation,
     LinearGradient,
     RadialGradient,
     Font,
@@ -141,7 +144,7 @@ const ThorVG = {
 export default ThorVG;
 
 // Named exports for advanced usage
-export { init, ThorVGInit, Canvas, Shape, Scene, Picture, Text, LinearGradient, RadialGradient, Font, constants };
+export { init, ThorVGInit, Canvas, Shape, Scene, Picture, Text, Animation, LinearGradient, RadialGradient, Font, constants };
 
 // Re-export types
 export type { CanvasOptions } from './canvas/Canvas';
@@ -149,6 +152,7 @@ export type { Bounds } from './paint/Paint';
 export type { RectOptions, StrokeOptions } from './paint/Shape';
 export type { LoadDataOptions, PictureFormat, PictureSize } from './paint/Picture';
 export type { TextAlign, TextLayout, TextOutline } from './paint/Text';
+export type { AnimationInfo, AnimationSegment } from './animation/Animation';
 export type { LoadFontOptions, FontFormat } from './core/Font';
 export type { ColorStop } from './fill/Fill';
 export type { RendererType, StrokeCapType, StrokeJoinType, GradientSpreadType, TextWrapModeType } from './constants';

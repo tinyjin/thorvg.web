@@ -159,6 +159,16 @@ export interface ThorVGCAPI {
   _tvg_font_load(name: number, path: string): number;
   _tvg_font_unload(name: number): number;
 
+  // Animation functions
+  _tvg_animation_new(): number;
+  _tvg_animation_del(animation: number): number;
+  _tvg_animation_get_picture(animation: number): number;
+  _tvg_animation_set_frame(animation: number, frame: number): number;
+  _tvg_animation_get_frame(animation: number): number;
+  _tvg_animation_get_total_frame(animation: number, framePtr: number): number;
+  _tvg_animation_get_duration(animation: number, durationPtr: number): number;
+  _tvg_animation_set_segment(animation: number, segment: number): number;
+
   // Gradient functions
   _tvg_linear_gradient_new(): number;
   _tvg_linear_gradient_set(gradient: number, x1: number, y1: number, x2: number, y2: number): number;

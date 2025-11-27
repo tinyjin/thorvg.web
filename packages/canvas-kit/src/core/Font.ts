@@ -75,27 +75,6 @@ export class Font {
   }
 
   /**
-   * Load font from a File or Blob object (browser only)
-   * @param name - Unique name to identify this font
-   * @param file - File or Blob to load
-   */
-  public static async loadFile(name: string, file: File | Blob): Promise<void> {
-    const arrayBuffer = await file.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
-
-    // Try to determine format from file name
-    let format: FontFormat = 'ttf';
-    if (file instanceof File) {
-      const ext = file.name.split('.').pop()?.toLowerCase();
-      if (ext === 'otf') {
-        format = 'otf';
-      }
-    }
-
-    Font.load(name, uint8Array, { format });
-  }
-
-  /**
    * Unload a previously loaded font
    * @param name - Font name to unload
    */
