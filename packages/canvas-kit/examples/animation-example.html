@@ -285,8 +285,13 @@
                 // Add picture to canvas
                 canvas.add(picture);
 
+                // IMPORTANT: Must call update() before setting frame for animations
+                canvas.update();
+
                 // Set initial frame
-                animation.frame(0);
+                // animation.frame(0);
+
+                // Render the frame
                 canvas.render();
 
                 // Update timeline
@@ -328,6 +333,8 @@
             } else {
                 animation.play((frame) => {
                     // Frame callback - called on each frame update
+                    // IMPORTANT: Must call update() before render() for animations
+                    canvas.update();
                     canvas.render();
                     updateFrameInfo();
                 });
@@ -340,6 +347,7 @@
             if (!animation) return;
 
             animation.stop();
+            canvas.update();
             canvas.render();
             updateFrameInfo();
 
@@ -358,6 +366,7 @@
 
             animation.pause();
             animation.frame(newFrame);
+            canvas.update();
             canvas.render();
             updateFrameInfo();
 
@@ -374,6 +383,7 @@
 
             animation.pause();
             animation.frame(newFrame);
+            canvas.update();
             canvas.render();
             updateFrameInfo();
 
@@ -386,6 +396,7 @@
 
             animation.pause();
             animation.frame(parseFloat(value));
+            canvas.update();
             canvas.render();
             updateFrameInfo();
 

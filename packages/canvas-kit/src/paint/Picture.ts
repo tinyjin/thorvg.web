@@ -25,13 +25,15 @@ export interface PictureSize {
 }
 
 export class Picture extends Paint {
-  constructor(ptr?: number) {
+  constructor(ptr?: number, skipRegistry: boolean = false) {
     const Module = getModule();
     if (!ptr) {
       ptr = Module._tvg_picture_new();
     }
 
-    super(ptr, pictureRegistry);
+    // If skipRegistry is true, don't register for automatic cleanup
+    // (used when Animation owns the Picture)
+    super(ptr, skipRegistry ? undefined : pictureRegistry);
   }
 
   protected _createInstance(ptr: number): Picture {

@@ -93,7 +93,19 @@ export class Canvas {
   }
 
   /**
+   * Update the canvas (required before rendering, especially for animations)
+   * FIXME: Can be removed if we can call this in render()
+   */
+  public update(): this {
+    const Module = getModule();
+    const result = Module._tvg_canvas_update(this.#ptr);
+    checkResult(result, 'update');
+    return this;
+  }
+
+  /**
    * Render the canvas
+   * Note: For animations, call update() first, then render()
    */
   public render(): this {
     const Module = getModule();

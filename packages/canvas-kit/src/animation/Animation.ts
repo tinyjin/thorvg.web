@@ -58,11 +58,9 @@ export class Animation {
       const picturePtr = Module._tvg_animation_get_picture(this.#ptr);
 
       if (picturePtr) {
-        // Create Picture instance without registering for cleanup
-        // because Animation owns it
-        this.#picture = Object.create(Picture.prototype) as Picture;
-        Object.setPrototypeOf(this.#picture, Picture.prototype);
-        (this.#picture as any).ptr = picturePtr;
+        // Create Picture instance from existing pointer
+        // skipRegistry = true because Animation owns this picture
+        this.#picture = new Picture(picturePtr, true);
       }
     }
     return this.#picture;
@@ -235,6 +233,7 @@ export class Animation {
 
   /**
    * Internal animation loop
+   * Note: User must call canvas.update() and canvas.render() in the frame callback
    */
   #animate = (time: number): void => {
     if (!this.#isPlaying || !this.#info) {
@@ -267,7 +266,7 @@ export class Animation {
     const Module = getModule();
     Module._tvg_animation_set_frame(this.#ptr, this.#currentFrame);
 
-    // Call frame callback
+    // Call frame callback (user should call canvas.update() and canvas.render() here)
     if (this.#onFrame) {
       this.#onFrame(this.#currentFrame);
     }
