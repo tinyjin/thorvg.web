@@ -7,8 +7,10 @@ import { Canvas } from './canvas/Canvas';
 import { Shape } from './paint/Shape';
 import { Scene } from './paint/Scene';
 import { Picture } from './paint/Picture';
+import { Text } from './paint/Text';
 import { LinearGradient } from './fill/LinearGradient';
 import { RadialGradient } from './fill/RadialGradient';
+import { Font } from './core/Font';
 import * as constants from './constants';
 // @ts-ignore - thorvg.js is generated during build
 import ThorVGModuleFactory from '../dist/thorvg.js';
@@ -22,8 +24,10 @@ export interface ThorVGNamespace {
   Shape: typeof Shape;
   Scene: typeof Scene;
   Picture: typeof Picture;
+  Text: typeof Text;
   LinearGradient: typeof LinearGradient;
   RadialGradient: typeof RadialGradient;
+  Font: typeof Font;
   ThorVGInit(engineType?: 'sw' | 'gl' | 'wg'): Promise<void>;
   term(): void;
 }
@@ -120,8 +124,10 @@ function createNamespace(): ThorVGNamespace {
     Shape,
     Scene,
     Picture,
+    Text,
     LinearGradient,
     RadialGradient,
+    Font,
     ThorVGInit,
     term,
   };
@@ -135,15 +141,17 @@ const ThorVG = {
 export default ThorVG;
 
 // Named exports for advanced usage
-export { init, ThorVGInit, Canvas, Shape, Scene, Picture, LinearGradient, RadialGradient, constants };
+export { init, ThorVGInit, Canvas, Shape, Scene, Picture, Text, LinearGradient, RadialGradient, Font, constants };
 
 // Re-export types
 export type { CanvasOptions } from './canvas/Canvas';
 export type { Bounds } from './paint/Paint';
 export type { RectOptions, StrokeOptions } from './paint/Shape';
 export type { LoadDataOptions, PictureFormat, PictureSize } from './paint/Picture';
+export type { TextAlign, TextLayout, TextOutline } from './paint/Text';
+export type { LoadFontOptions, FontFormat } from './core/Font';
 export type { ColorStop } from './fill/Fill';
-export type { RendererType, StrokeCapType, StrokeJoinType, GradientSpreadType } from './constants';
+export type { RendererType, StrokeCapType, StrokeJoinType, GradientSpreadType, TextWrapModeType } from './constants';
 
 // Re-export enums
 export {
@@ -153,4 +161,5 @@ export {
   FillRule,
   GradientSpread,
   CompositeMethod,
+  TextWrapMode,
 } from './constants';

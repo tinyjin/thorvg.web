@@ -140,6 +140,25 @@ export interface ThorVGCAPI {
   _tvg_picture_get_size(picture: number, w: number, h: number): number;
   _tvg_paint_rel(paint: number): number;
 
+  // Text functions
+  _tvg_text_new(): number;
+  _tvg_text_set_font(text: number, name: number): number;
+  _tvg_text_set_text(text: number, utf8: number): number;
+  _tvg_text_set_size(text: number, size: number): number;
+  _tvg_text_set_color(text: number, r: number, g: number, b: number): number;
+  _tvg_text_align(text: number, halign: number, valign: number): number;
+  _tvg_text_layout(text: number, width: number, height: number): number;
+  _tvg_text_wrap_mode(text: number, mode: number): number;
+  _tvg_text_set_italic(text: number, shear: number): number;
+  _tvg_text_set_outline(text: number, width: number, r: number, g: number, b: number): number;
+  _tvg_text_set_gradient(text: number, gradient: number): number;
+  _tvg_text_set_stroke_gradient(text: number, gradient: number): number;
+
+  // Font functions
+  _tvg_font_load_data(name: number, data: number, size: number, mimetype: number, copy: number): number;
+  _tvg_font_load(name: number, path: string): number;
+  _tvg_font_unload(name: number): number;
+
   // Gradient functions
   _tvg_linear_gradient_new(): number;
   _tvg_linear_gradient_set(gradient: number, x1: number, y1: number, x2: number, y2: number): number;

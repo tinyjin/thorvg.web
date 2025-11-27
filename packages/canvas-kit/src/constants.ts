@@ -49,8 +49,17 @@ export enum CompositeMethod {
   InvLumaMask = 5,
 }
 
+export enum TextWrapMode {
+  None = 0,
+  Character = 1,
+  Word = 2,
+  Smart = 3,
+  Ellipsis = 4,
+}
+
 export type RendererType = 'sw' | 'gl' | 'wg' | 'auto';
 export type StrokeCapType = 'butt' | 'round' | 'square';
 export type StrokeJoinType = 'miter' | 'round' | 'bevel';
 export type FillRuleType = 'winding' | 'evenodd';
 export type GradientSpreadType = 'pad' | 'reflect' | 'repeat';
+export type TextWrapModeType = 'none' | 'character' | 'word' | 'smart' | 'ellipsis';
