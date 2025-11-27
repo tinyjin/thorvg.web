@@ -6,6 +6,7 @@ import type { ThorVGModule } from './types/emscripten';
 import { Canvas } from './canvas/Canvas';
 import { Shape } from './paint/Shape';
 import { Scene } from './paint/Scene';
+import { Picture } from './paint/Picture';
 import { LinearGradient } from './fill/LinearGradient';
 import { RadialGradient } from './fill/RadialGradient';
 import * as constants from './constants';
@@ -20,6 +21,7 @@ export interface ThorVGNamespace {
   Canvas: typeof Canvas;
   Shape: typeof Shape;
   Scene: typeof Scene;
+  Picture: typeof Picture;
   LinearGradient: typeof LinearGradient;
   RadialGradient: typeof RadialGradient;
   ThorVGInit(engineType?: 'sw' | 'gl' | 'wg'): Promise<void>;
@@ -117,6 +119,7 @@ function createNamespace(): ThorVGNamespace {
     Canvas,
     Shape,
     Scene,
+    Picture,
     LinearGradient,
     RadialGradient,
     ThorVGInit,
@@ -132,12 +135,13 @@ const ThorVG = {
 export default ThorVG;
 
 // Named exports for advanced usage
-export { init, ThorVGInit, Canvas, Shape, Scene, LinearGradient, RadialGradient, constants };
+export { init, ThorVGInit, Canvas, Shape, Scene, Picture, LinearGradient, RadialGradient, constants };
 
 // Re-export types
 export type { CanvasOptions } from './canvas/Canvas';
 export type { Bounds } from './paint/Paint';
 export type { RectOptions, StrokeOptions } from './paint/Shape';
+export type { LoadDataOptions, PictureFormat, PictureSize } from './paint/Picture';
 export type { ColorStop } from './fill/Fill';
 export type { RendererType, StrokeCapType, StrokeJoinType, GradientSpreadType } from './constants';
 

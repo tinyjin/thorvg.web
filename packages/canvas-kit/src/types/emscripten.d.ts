@@ -125,6 +125,21 @@ export interface ThorVGCAPI {
   _tvg_scene_push(scene: number, paint: number): number;
   _tvg_scene_remove(scene: number, paint: number): number;
 
+  // Picture functions
+  _tvg_picture_new(): number;
+  _tvg_picture_load_data(
+    picture: number,
+    data: number,
+    size: number,
+    mimetype: string,
+    rpath: string,
+    copy: number
+  ): number;
+  _tvg_picture_load(picture: number, path: string): number;
+  _tvg_picture_set_size(picture: number, w: number, h: number): number;
+  _tvg_picture_get_size(picture: number, w: number, h: number): number;
+  _tvg_paint_rel(paint: number): number;
+
   // Gradient functions
   _tvg_linear_gradient_new(): number;
   _tvg_linear_gradient_set(gradient: number, x1: number, y1: number, x2: number, y2: number): number;
