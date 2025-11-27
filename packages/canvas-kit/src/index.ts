@@ -9,6 +9,8 @@ import { Scene } from './paint/Scene';
 import { LinearGradient } from './fill/LinearGradient';
 import { RadialGradient } from './fill/RadialGradient';
 import * as constants from './constants';
+// @ts-ignore - thorvg.js is generated during build
+import ThorVGModuleFactory from '../dist/thorvg.js';
 
 export interface InitOptions {
   locateFile?: (path: string) => string;
@@ -71,10 +73,6 @@ async function init(options: InitOptions = {}): Promise<ThorVGNamespace> {
   }
 
   const { locateFile } = options;
-
-  // Import the WASM module dynamically
-  // Note: This import is resolved at runtime after WASM build
-  const ThorVGModuleFactory = (await import('../dist/thorvg.js' as any)).default;
 
   // Load WASM module
   Module = await ThorVGModuleFactory({

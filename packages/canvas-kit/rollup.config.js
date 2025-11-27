@@ -21,9 +21,6 @@ const createCanvasKitConfig = () => {
       propertyReadSideEffects: false,
       tryCatchDeoptimization: false
     },
-    external: [
-      '../dist/thorvg.js'
-    ],
     output: [
       {
         file: pkg.exports['.'].import,
@@ -83,9 +80,6 @@ export default [
   {
     input: "./src/index.ts",
     treeshake: true,
-    external: [
-      '../dist/thorvg.js'
-    ],
     output: [
       {
         file: pkg.types,
