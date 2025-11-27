@@ -26,33 +26,41 @@ yarn add @thorvg/canvas-kit
 ```typescript
 import ThorVG from '@thorvg/canvas-kit';
 
-// Initialize ThorVG
-const TVG = await ThorVG.init({
+// Step 1: Load WASM module
+const tvg = await ThorVG.init({
   locateFile: (path) => `/wasm/${path}`
 });
 
-// Create canvas with auto-detected best renderer
-const canvas = new TVG.Canvas('#myCanvas', {
-  renderer: 'auto', // 'sw' | 'gl' | 'wg' | 'auto'
+// Step 2: Initialize engine (especially important for WebGPU)
+await tvg.ThorVGInit('sw'); // 'sw' | 'gl' | 'wg'
+
+// Step 3: Create canvas
+const canvas = new tvg.Canvas('#myCanvas', {
+  backend: 'sw',
   width: 800,
   height: 600
 });
 
-// Draw shapes with fluent API
-const rect = new TVG.Shape()
-  .appendRect(0, 0, 200, 150, { rx: 10, ry: 10 })
-  .fill(255, 0, 0, 255)
-  .translate(100, 100);
+// Step 4: Draw shapes with fluent API
+const rect = new tvg.Shape();
+rect.appendRect({ x: 0, y: 0, w: 200, h: 150, rx: 10, ry: 10 });
+rect.fillColor(255, 0, 0, 255);
+rect.translate(100, 100);
 
-const circle = new TVG.Shape()
-  .appendCircle(0, 0, 80, 80)
-  .fill(0, 100, 255, 255)
-  .stroke({ width: 5, color: [0, 0, 0, 255] })
-  .translate(500, 200);
+const circle = new tvg.Shape();
+circle.appendCircle(0, 0, 80, 80);
+circle.fillColor(0, 100, 255, 255);
+circle.strokeWidth(5);
+circle.strokeColor(0, 0, 0, 255);
+circle.translate(500, 200);
 
-// Add to canvas and render
-canvas.add(rect, circle).render();
+// Step 5: Add to canvas and render
+canvas.push(rect);
+canvas.push(circle);
+canvas.update();
 ```
+
+> **Important**: Always call `ThorVGInit()` before creating canvases. For WebGPU backend, this handles async initialization. For SW/GL backends, it's a no-op but still recommended.
 
 ## Advanced Usage
 
@@ -103,8 +111,11 @@ TVG.term();        // Terminate WASM module completely
 
 ### ThorVG Initialization
 
-- `ThorVG.init(options?)` - Initialize the WASM module
-- `TVG.term()` - Terminate the WASM module
+- `ThorVG.init(options?)` - Load the WASM module
+- `tvg.ThorVGInit(engineType?)` - Initialize engine ('sw' | 'gl' | 'wg')
+  - For WebGPU: Handles async initialization, waits until ready
+  - For SW/GL: No-op but recommended to call for consistency
+- `tvg.term()` - Terminate the WASM module
 
 ### Canvas
 

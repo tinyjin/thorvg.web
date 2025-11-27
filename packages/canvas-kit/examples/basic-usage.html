@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>ThorVG Canvas Kit - Basic Usage</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f0f0f0;
+        }
+        #canvas {
+            border: 1px solid #333;
+            background: white;
+            margin: 20px 0;
+        }
+        .controls {
+            margin: 10px 0;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .info {
+            background: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>ThorVG Canvas Kit - Basic Usage</h1>
+
+    <div class="info">
+        <h3>Usage Pattern:</h3>
+        <pre><code>// 1. Load WASM module
+const ThorVG = await import('./dist/canvas-kit.esm.js');
+const tvg = await ThorVG.init();
+
+// 2. Initialize engine (for WebGPU, wait for async init)
+await tvg.ThorVGInit('sw'); // or 'gl', 'wg'
+
+// 3. Create canvas and start drawing
+const canvas = new tvg.Canvas('#canvas', {
+  width: 800,
+  height: 600,
+  backend: 'sw'
+});</code></pre>
+    </div>
+
+    <div class="controls">
+        <label>Backend:
+            <select id="backend">
+                <option value="sw">Software</option>
+                <option value="gl">WebGL</option>
+                <option value="wg">WebGPU</option>
+            </select>
+        </label>
+        <button onclick="initAndDraw()">Initialize & Draw</button>
+        <button onclick="clearCanvas()">Clear</button>
+    </div>
+
+    <canvas id="canvas" width="800" height="600"></canvas>
+
+    <div class="info">
+        <h3>Status:</h3>
+        <pre id="log"></pre>
+    </div>
+
+    <script type="module">
+        let tvg = null;
+        let canvas = null;
+
+        function log(msg) {
+            const logEl = document.getElementById('log');
+            logEl.textContent += msg + '\n';
+            console.log(msg);
+        }
+
+        window.initAndDraw = async function() {
+            try {
+                const backend = document.getElementById('backend').value;
+                log(`\n=== Initializing with ${backend} backend ===`);
+
+                // Step 1: Load WASM module
+                if (!tvg) {
+                    log('1. Loading ThorVG WASM module...');
+                    const ThorVG = await import('../dist/canvas-kit.esm.js');
+                    tvg = await ThorVG.init({
+                        locateFile: (path) => {
+                            log(`   locateFile: ${path}`);
+                            return '../dist/' + path.split('/').pop();
+                        }
+                    });
+                    log('✓ Module loaded');
+                }
+
+                // Step 2: Initialize engine (especially important for WebGPU)
+                log(`2. Initializing ${backend} engine...`);
+                await tvg.ThorVGInit(backend);
+                log('✓ Engine initialized');
+
+                // Step 3: Create canvas
+                log('3. Creating canvas...');
+                if (canvas) {
+                    canvas.clear();
+                }
+                canvas = new tvg.Canvas('#canvas', {
+                    width: 800,
+                    height: 600,
+                    backend: backend
+                });
+                log('✓ Canvas created');
+
+                // Step 4: Draw shapes
+                log('4. Drawing shapes...');
+
+                // Red rectangle
+                const rect = new tvg.Shape();
+                rect.appendRect({ x: 100, y: 100, w: 200, h: 150, rx: 10, ry: 10 });
+                rect.fillColor(255, 0, 0, 255);
+                canvas.push(rect);
+
+                // Blue circle with stroke
+                const circle = new tvg.Shape();
+                circle.appendCircle(500, 200, 80, 80);
+                circle.fillColor(0, 100, 255, 255);
+                circle.strokeWidth(5);
+                circle.strokeColor(0, 0, 0, 255);
+                canvas.push(circle);
+
+                // Green rectangle
+                const rect2 = new tvg.Shape();
+                rect2.appendRect({ x: 300, y: 400, w: 150, h: 100 });
+                rect2.fillColor(0, 200, 100, 255);
+                canvas.push(rect2);
+
+                // Update and render
+                canvas.update();
+                log('✓ Drawing complete!');
+
+            } catch (error) {
+                log('ERROR: ' + error.message);
+                console.error(error);
+            }
+        };
+
+        window.clearCanvas = function() {
+            if (!canvas) {
+                log('ERROR: Canvas not initialized!');
+                return;
+            }
+            log('Clearing canvas...');
+            canvas.clear();
+            canvas.update();
+            log('✓ Canvas cleared');
+        };
+
+        // Apply renderer from query string
+        const params = new URLSearchParams(window.location.search);
+        const renderer = params.get('renderer');
+        if (renderer && ['sw', 'gl', 'wg'].includes(renderer)) {
+            document.getElementById('backend').value = renderer;
+        }
+
+        // Handle backend change
+        document.getElementById('backend').addEventListener('change', (e) => {
+            const url = new URL(window.location.href);
+            url.searchParams.set('renderer', e.target.value);
+            window.location.href = url.toString();
+        });
+
+        log('Ready! Click "Initialize & Draw" to start.');
+    </script>
+</body>
+</html>

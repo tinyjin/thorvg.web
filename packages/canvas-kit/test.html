@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Test ThorVG Module</title>
+</head>
+<body>
+    <h1>ThorVG Module Test</h1>
+    <pre id="log"></pre>
+
+    <script type="module">
+        function log(msg) {
+            document.getElementById('log').textContent += msg + '\n';
+            console.log(msg);
+        }
+
+        try {
+            log('Loading ThorVG module...');
+            const ThorVGModuleFactory = (await import('./dist/thorvg.js')).default;
+            log('Module factory loaded');
+
+            const Module = await ThorVGModuleFactory();
+            log('Module instantiated');
+            log('Module keys: ' + Object.keys(Module).filter(k => typeof Module[k] !== 'function' || k.length < 50).slice(0, 20).join(', '));
+
+            // Check for ThorVGEngine
+            if (Module.ThorVGEngine) {
+                log('✓ ThorVGEngine found!');
+                log('ThorVGEngine type: ' + typeof Module.ThorVGEngine);
+            } else {
+                log('✗ ThorVGEngine NOT found');
+                log('Looking for similar keys...');
+                const engineKeys = Object.keys(Module).filter(k => k.toLowerCase().includes('engine') || k.toLowerCase().includes('thorvg'));
+                log('Engine-related keys: ' + engineKeys.join(', '));
+            }
+
+            // Check for init/term functions
+            if (Module.init) {
+                log('✓ init() found');
+            }
+            if (Module.term) {
+                log('✓ term() found');
+            }
+
+            // Check for C API functions
+            if (Module._tvg_engine_init) {
+                log('✓ C API functions found (_tvg_engine_init)');
+            }
+
+        } catch (error) {
+            log('ERROR: ' + error.message);
+            console.error(error);
+        }
+    </script>
+</body>
+</html>

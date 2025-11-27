@@ -20,11 +20,46 @@ export interface ThorVGNamespace {
   Scene: typeof Scene;
   LinearGradient: typeof LinearGradient;
   RadialGradient: typeof RadialGradient;
+  ThorVGInit(engineType?: 'sw' | 'gl' | 'wg'): Promise<void>;
   term(): void;
 }
 
 let Module: ThorVGModule | null = null;
 let initialized = false;
+
+/**
+ * Initialize ThorVG engine (call after loading the module)
+ * For WebGPU backend, this handles async initialization
+ * For SW/GL backends, this is a no-op but still recommended to call
+ */
+async function ThorVGInit(engineType: 'sw' | 'gl' | 'wg' = 'sw'): Promise<void> {
+  if (!Module) {
+    throw new Error('ThorVG module not loaded. Call init() first.');
+  }
+
+  // SW and GL renderers don't need module initialization
+  if (engineType !== 'wg') {
+    return;
+  }
+
+  // WebGPU requires async initialization
+  let status: number;
+  let attempts = 0;
+  const MAX_ATTEMPTS = 50;
+
+  do {
+    status = Module.init();
+    if (status === 2) {
+      // WebGPU initialization pending, wait and retry
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      attempts++;
+    }
+  } while (status === 2 && attempts < MAX_ATTEMPTS);
+
+  if (status === 1) {
+    throw new Error('ThorVG WebGPU initialization failed');
+  }
+}
 
 /**
  * Initialize ThorVG WASM module
@@ -45,24 +80,6 @@ async function init(options: InitOptions = {}): Promise<ThorVGNamespace> {
   Module = await ThorVGModuleFactory({
     locateFile: locateFile ?? ((path: string) => path),
   }) as ThorVGModule;
-
-  // Initialize WebGPU if needed (async)
-  let status: number;
-  let attempts = 0;
-  const MAX_ATTEMPTS = 50;
-
-  do {
-    status = Module.init();
-    if (status === 2) {
-      // WebGPU initialization pending
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      attempts++;
-    }
-  } while (status === 2 && attempts < MAX_ATTEMPTS);
-
-  if (status === 1) {
-    throw new Error('ThorVG initialization failed');
-  }
 
   // Make Module globally available for class constructors
   (globalThis as any).__ThorVGModule = Module;
@@ -104,6 +121,7 @@ function createNamespace(): ThorVGNamespace {
     Scene,
     LinearGradient,
     RadialGradient,
+    ThorVGInit,
     term,
   };
 }
@@ -116,7 +134,7 @@ const ThorVG = {
 export default ThorVG;
 
 // Named exports for advanced usage
-export { init, Canvas, Shape, Scene, LinearGradient, RadialGradient, constants };
+export { init, ThorVGInit, Canvas, Shape, Scene, LinearGradient, RadialGradient, constants };
 
 // Re-export types
 export type { CanvasOptions } from './canvas/Canvas';

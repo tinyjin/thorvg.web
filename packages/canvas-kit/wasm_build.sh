@@ -37,7 +37,7 @@ meson setup \
   -Dsavers="all" \
   -Dthreads=false \
   -Dfile="false" \
-  -Dbindings="capi, wasm_beta" \
+  -Dbindings="capi, wasm_canvaskit" \
   -Dpartial=false \
   -Dengines="all" \
   --cross-file /tmp/.wasm_canvaskit_cross.txt \
