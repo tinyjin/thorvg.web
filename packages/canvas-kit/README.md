@@ -43,21 +43,17 @@ const canvas = new tvg.Canvas('#myCanvas', {
 
 // Step 4: Draw shapes with fluent API
 const rect = new tvg.Shape();
-rect.appendRect({ x: 0, y: 0, w: 200, h: 150, rx: 10, ry: 10 });
-rect.fillColor(255, 0, 0, 255);
-rect.translate(100, 100);
+rect.appendRect(100, 100, 200, 150, { rx: 10, ry: 10 });
+rect.fill(255, 0, 0, 255);
 
 const circle = new tvg.Shape();
-circle.appendCircle(0, 0, 80, 80);
-circle.fillColor(0, 100, 255, 255);
-circle.strokeWidth(5);
-circle.strokeColor(0, 0, 0, 255);
-circle.translate(500, 200);
+circle.appendCircle(500, 200, 80, 80);
+circle.fill(0, 100, 255, 255);
+circle.stroke({ width: 5, color: [0, 0, 0, 255] });
 
 // Step 5: Add to canvas and render
-canvas.push(rect);
-canvas.push(circle);
-canvas.update();
+canvas.add(rect, circle);
+canvas.render();
 ```
 
 > **Important**: Always call `ThorVGInit()` before creating canvases. For WebGPU backend, this handles async initialization. For SW/GL backends, it's a no-op but still recommended.
@@ -67,27 +63,28 @@ canvas.update();
 ### Gradients
 
 ```typescript
-const gradient = new TVG.LinearGradient(0, 0, 200, 0)
-  .addStop(0, [255, 0, 0, 255])
-  .addStop(0.5, [255, 255, 0, 255])
-  .addStop(1, [0, 0, 255, 255])
-  .spread('pad');
+const gradient = new tvg.LinearGradient(0, 0, 200, 0);
+gradient.addStop(0, [255, 0, 0, 255]);
+gradient.addStop(0.5, [255, 255, 0, 255]);
+gradient.addStop(1, [0, 0, 255, 255]);
+gradient.spread('pad');
 
-const shape = new TVG.Shape()
-  .appendRect(0, 0, 200, 100)
-  .fill(gradient);
+const shape = new tvg.Shape();
+shape.appendRect(0, 0, 200, 100);
+shape.fill(gradient);
 ```
 
 ### Scene Composition
 
 ```typescript
-const scene = new TVG.Scene()
-  .translate(50, 50)
-  .rotate(45)
-  .opacity(0.8);
+const scene = new tvg.Scene();
+scene.translate(50, 50);
+scene.rotate(45);
+scene.opacity(0.8);
 
 scene.add(shape1, shape2, shape3);
 canvas.add(scene);
+canvas.render();
 ```
 
 ### Memory Management
@@ -95,7 +92,7 @@ canvas.add(scene);
 ```typescript
 // Automatic cleanup when objects go out of scope
 {
-  const shape = new TVG.Shape();
+  const shape = new tvg.Shape();
   canvas.add(shape);
 } // shape's WASM memory freed by FinalizationRegistry
 
@@ -103,8 +100,9 @@ canvas.add(scene);
 shape.dispose();
 
 // Canvas lifecycle
-canvas.destroy();  // Free canvas memory, module stays alive
-TVG.term();        // Terminate WASM module completely
+canvas.clear();    // Clear all paints from canvas
+canvas.render();   // Re-render after clearing
+tvg.term();        // Terminate WASM module completely
 ```
 
 ## API Reference
@@ -119,31 +117,33 @@ TVG.term();        // Terminate WASM module completely
 
 ### Canvas
 
-- `new TVG.Canvas(selector, options)` - Create a canvas
+- `new tvg.Canvas(selector, options)` - Create a canvas
 - `canvas.add(...paints)` - Add paints to canvas
-- `canvas.remove(paint?)` - Remove paint(s)
+- `canvas.remove(paint?)` - Remove paint (or all if no argument)
 - `canvas.clear()` - Clear all paints
-- `canvas.render()` - Render the canvas
-- `canvas.resize(width, height)` - Resize canvas
-- `canvas.destroy()` - Destroy canvas and free memory
+- `canvas.render()` - Update and render the canvas
 
 ### Shape
 
-- `new TVG.Shape()` - Create a shape
+- `new tvg.Shape()` - Create a shape
 - `shape.moveTo(x, y)` - Move to point
 - `shape.lineTo(x, y)` - Line to point
-- `shape.cubicTo(...)` - Cubic bezier curve
+- `shape.cubicTo(cx1, cy1, cx2, cy2, x, y)` - Cubic bezier curve
 - `shape.close()` - Close path
 - `shape.appendRect(x, y, w, h, options?)` - Add rectangle
-- `shape.appendCircle(cx, cy, rx, ry?)` - Add circle/ellipse
-- `shape.fill(color | gradient)` - Set fill
-- `shape.stroke(width | options)` - Set stroke
+  - Options: `{ rx?, ry?, clockwise? }`
+- `shape.appendCircle(cx, cy, rx, ry?, clockwise?)` - Add circle/ellipse
+- `shape.fill(r, g, b, a?)` - Set fill color
+- `shape.fill(gradient)` - Set fill gradient
+- `shape.stroke(width)` - Set stroke width
+- `shape.stroke(options)` - Set full stroke options
+  - Options: `{ width?, color?, gradient?, cap?, join?, miterLimit? }`
 
 ### Scene
 
-- `new TVG.Scene()` - Create a scene
+- `new tvg.Scene()` - Create a scene
 - `scene.add(...paints)` - Add paints to scene
-- `scene.remove(paint?)` - Remove paint(s)
+- `scene.remove(paint?)` - Remove paint (or all if no argument)
 - `scene.clear()` - Clear all paints
 
 ### Paint (Base for Shape/Scene)
@@ -159,10 +159,10 @@ TVG.term();        // Terminate WASM module completely
 
 ### Gradients
 
-- `new TVG.LinearGradient(x1, y1, x2, y2)` - Linear gradient
-- `new TVG.RadialGradient(cx, cy, r, fx?, fy?, fr?)` - Radial gradient
-- `gradient.addStop(offset, color)` - Add color stop
-- `gradient.spread(type)` - Set spread method ('pad' | 'reflect' | 'repeat')
+- `new tvg.LinearGradient(x1, y1, x2, y2)` - Linear gradient
+- `new tvg.RadialGradient(cx, cy, r)` - Radial gradient
+- `gradient.addStop(offset, color)` - Add color stop (color as `[r, g, b, a]`)
+- `gradient.spread(type)` - Set spread method (`'pad'` | `'reflect'` | `'repeat'`)
 
 ## Renderers
 

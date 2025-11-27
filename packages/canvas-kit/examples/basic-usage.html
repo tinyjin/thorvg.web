@@ -117,28 +117,25 @@ const canvas = new tvg.Canvas('#canvas', {
                 // Step 4: Draw shapes
                 log('4. Drawing shapes...');
 
-                // Red rectangle
+                // Red rectangle with rounded corners
                 const rect = new tvg.Shape();
-                rect.appendRect({ x: 100, y: 100, w: 200, h: 150, rx: 10, ry: 10 });
-                rect.fillColor(255, 0, 0, 255);
-                canvas.push(rect);
+                rect.appendRect(100, 100, 200, 150, { rx: 10, ry: 10 });
+                rect.fill(255, 0, 0, 255);
 
-                // Blue circle with stroke
+                // Blue circle with black stroke
                 const circle = new tvg.Shape();
                 circle.appendCircle(500, 200, 80, 80);
-                circle.fillColor(0, 100, 255, 255);
-                circle.strokeWidth(5);
-                circle.strokeColor(0, 0, 0, 255);
-                canvas.push(circle);
+                circle.fill(0, 100, 255, 255);
+                circle.stroke({ width: 5, color: [0, 0, 0, 255] });
 
                 // Green rectangle
                 const rect2 = new tvg.Shape();
-                rect2.appendRect({ x: 300, y: 400, w: 150, h: 100 });
-                rect2.fillColor(0, 200, 100, 255);
-                canvas.push(rect2);
+                rect2.appendRect(300, 400, 150, 100);
+                rect2.fill(0, 200, 100, 255);
 
-                // Update and render
-                canvas.update();
+                // Add to canvas and render
+                canvas.add(rect, circle, rect2);
+                canvas.render();
                 log('✓ Drawing complete!');
 
             } catch (error) {
@@ -154,7 +151,6 @@ const canvas = new tvg.Canvas('#canvas', {
             }
             log('Clearing canvas...');
             canvas.clear();
-            canvas.update();
             log('✓ Canvas cleared');
         };
 

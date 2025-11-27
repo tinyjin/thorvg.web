@@ -24,11 +24,15 @@ export abstract class WasmObject {
    * Gets the WASM pointer for this object
    * @throws Error if object has been disposed
    */
-  protected get ptr(): number {
+  public get ptr(): number {
     if (this.#disposed) {
       throw new Error('Object has been disposed');
     }
     return this.#ptr;
+  }
+
+  public set ptr(ptr: number) {
+    this.#ptr = ptr;
   }
 
   /**

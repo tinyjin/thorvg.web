@@ -37,7 +37,7 @@ export class Shape extends Paint {
     const shape = Object.create(Shape.prototype) as Shape;
     // Manually initialize the shape with the new pointer
     Object.setPrototypeOf(shape, Shape.prototype);
-    (shape as any).ptr = ptr;
+    shape.ptr = ptr;
     return shape;
   }
 
@@ -145,7 +145,7 @@ export class Shape extends Paint {
 
     if (gradientOrR instanceof Fill) {
       // Gradient fill
-      const result = Module._tvg_shape_set_gradient(this.ptr, (gradientOrR as any).ptr);
+      const result = Module._tvg_shape_set_gradient(this.ptr, gradientOrR.ptr);
       checkResult(result, 'fill (gradient)');
     } else if (typeof gradientOrR === 'number' && g !== undefined && b !== undefined) {
       // RGB or RGBA color
@@ -182,7 +182,7 @@ export class Shape extends Paint {
         checkResult(result, 'stroke (color)');
       }
       if (gradient) {
-        const result = Module._tvg_shape_set_stroke_gradient(this.ptr, (gradient as any).ptr);
+        const result = Module._tvg_shape_set_stroke_gradient(this.ptr, gradient.ptr);
         checkResult(result, 'stroke (gradient)');
       }
       if (cap) {

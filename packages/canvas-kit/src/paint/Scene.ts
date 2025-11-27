@@ -20,7 +20,7 @@ export class Scene extends Paint {
     const scene = Object.create(Scene.prototype) as Scene;
     // Manually initialize the scene with the new pointer
     Object.setPrototypeOf(scene, Scene.prototype);
-    (scene as any).ptr = ptr;
+    scene.ptr = ptr;
     return scene;
   }
 
@@ -30,7 +30,7 @@ export class Scene extends Paint {
   public add(...paints: Paint[]): this {
     const Module = getModule();
     for (const paint of paints) {
-      const result = Module._tvg_scene_push(this.ptr, (paint as any).ptr);
+      const result = Module._tvg_scene_push(this.ptr, paint.ptr);
       checkResult(result, 'add');
       this.#children.add(paint);
     }
@@ -45,7 +45,7 @@ export class Scene extends Paint {
     const Module = getModule();
 
     if (paint) {
-      const result = Module._tvg_scene_remove(this.ptr, (paint as any).ptr);
+      const result = Module._tvg_scene_remove(this.ptr, paint.ptr);
       checkResult(result, 'remove');
       this.#children.delete(paint);
     } else {
