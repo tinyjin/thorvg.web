@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThorVG Live Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            flex-direction: row;
+        }
+
+        .canvas-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #252526;
+            border-right: 1px solid #3e3e42;
+        }
+
+        .editor-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #1e1e1e;
+        }
+
+        .panel-header {
+            padding: 12px 16px;
+            background: #2d2d30;
+            border-bottom: 1px solid #3e3e42;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #cccccc;
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        select, button {
+            padding: 6px 12px;
+            font-size: 13px;
+            border: 1px solid #3e3e42;
+            background: #3c3c3c;
+            color: #cccccc;
+            cursor: pointer;
+            border-radius: 3px;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #505050;
+        }
+
+        button:active {
+            background: #2a2a2a;
+        }
+
+        button.run-btn {
+            background: #0e639c;
+            border-color: #0e639c;
+            color: white;
+            font-weight: 500;
+        }
+
+        button.run-btn:hover {
+            background: #1177bb;
+        }
+
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: auto;
+        }
+
+        #canvas {
+            border: 1px solid #3e3e42;
+            background: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .editor-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #code-editor {
+            flex: 1;
+            padding: 16px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border: none;
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+            tab-size: 2;
+        }
+
+        #code-editor:focus {
+            outline: none;
+        }
+
+        .status-bar {
+            padding: 6px 16px;
+            background: #007acc;
+            color: white;
+            font-size: 12px;
+            border-top: 1px solid #3e3e42;
+        }
+
+        .status-bar.error {
+            background: #f48771;
+        }
+
+        .status-bar.success {
+            background: #89d185;
+        }
+
+        .examples-dropdown {
+            position: relative;
+        }
+
+        label {
+            font-size: 12px;
+            color: #cccccc;
+            margin-right: 4px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+        }
+
+        input[type="checkbox"] {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Left Panel: Canvas -->
+        <div class="canvas-panel">
+            <div class="panel-header">
+                <div class="panel-title">Canvas Preview</div>
+                <div class="controls">
+                    <label>Renderer:</label>
+                    <select id="renderer-select">
+                        <option value="sw">Software</option>
+                        <option value="gl" selected>WebGL</option>
+                        <option value="wg">WebGPU</option>
+                    </select>
+                    <button onclick="clearCanvas()">Clear</button>
+                </div>
+            </div>
+            <div class="canvas-container">
+                <canvas id="canvas" width="600" height="600"></canvas>
+            </div>
+        </div>
+
+        <!-- Right Panel: Code Editor -->
+        <div class="editor-panel">
+            <div class="panel-header">
+                <div class="panel-title">Code Editor</div>
+                <div class="controls">
+                    <label>Example:</label>
+                    <select id="example-select">
+                        <option value="basic">Basic Shapes</option>
+                        <option value="gradient">Gradients</option>
+                        <option value="transform">Transforms</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="auto-run" checked>
+                        Auto Run
+                    </label>
+                    <button class="run-btn" onclick="runCode()">Run (Cmd+Enter)</button>
+                </div>
+            </div>
+            <div class="editor-container">
+                <textarea id="code-editor" spellcheck="false"></textarea>
+            </div>
+            <div class="status-bar" id="status-bar">
+                Ready - Edit code and click Run or enable Auto Run
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Global state
+        let TVG = null;
+        let canvas = null;
+        let isInitialized = false;
+        let autoRunTimeout = null;
+
+        // Example templates
+        const examples = {
+            basic: `// Basic shapes example
+const rect = new TVG.Shape();
+rect.appendRect(100, 100, 200, 150, { rx: 10, ry: 10 });
+rect.fill(255, 80, 80, 255);
+
+const circle = new TVG.Shape();
+circle.appendCircle(400, 200, 80, 80);
+circle.fill(80, 150, 255, 255);
+circle.stroke({ width: 5, color: [0, 0, 0, 255] });
+
+const triangle = new TVG.Shape();
+triangle.moveTo(300, 400);
+triangle.lineTo(400, 550);
+triangle.lineTo(200, 550);
+triangle.close();
+triangle.fill(100, 200, 100, 255);
+
+canvas.add(rect, circle, triangle);`,
+
+            gradient: `// Gradient example
+const rect = new TVG.Shape();
+rect.appendRect(50, 50, 500, 400, { rx: 20, ry: 20 });
+
+// Create linear gradient
+const gradient = new TVG.LinearGradient(50, 50, 550, 450);
+gradient.addStop(0, [255, 100, 100, 255]);
+gradient.addStop(0.5, [100, 100, 255, 255]);
+gradient.addStop(1, [100, 255, 100, 255]);
+
+rect.fill(gradient);
+canvas.add(rect);
+
+// Radial gradient circle
+const circle = new TVG.Shape();
+circle.appendCircle(300, 500, 80, 80);
+
+const radialGrad = new TVG.RadialGradient(300, 500, 80);
+radialGrad.addStop(0, [255, 255, 100, 255]);
+radialGrad.addStop(1, [255, 100, 100, 255]);
+
+circle.fill(radialGrad);
+canvas.add(circle);`,
+
+            transform: `// Transform example
+// Create a shape that we'll transform multiple times
+for (let i = 0; i < 8; i++) {
+  const rect = new TVG.Shape();
+  rect.appendRect(-50, -25, 100, 50, { rx: 5, ry: 5 });
+
+  const hue = (i * 45) % 360;
+  const r = Math.abs(Math.sin(hue * Math.PI / 180)) * 255;
+  const g = Math.abs(Math.sin((hue + 120) * Math.PI / 180)) * 255;
+  const b = Math.abs(Math.sin((hue + 240) * Math.PI / 180)) * 255;
+
+  rect.fill(r, g, b, 255);
+
+  // Transform: translate to center, rotate, then translate outward
+  rect.translate(300, 300);
+  rect.rotate(i * 45);
+  rect.translate(150, 0);
+
+  canvas.add(rect);
+}
+
+// Center circle
+const center = new TVG.Shape();
+center.appendCircle(300, 300, 30, 30);
+center.fill(255, 255, 255, 255);
+canvas.add(center);`,
+
+            custom: `// Your custom code here
+const shape = new TVG.Shape();
+shape.appendRect(150, 150, 300, 300, { rx: 20, ry: 20 });
+shape.fill(100, 150, 255, 255);
+
+canvas.add(shape);`
+        };
+
+        // Initialize ThorVG once on page load
+        async function initializeThorVG() {
+            if (isInitialized) return;
+
+            try {
+                updateStatus('Initializing ThorVG...', 'info');
+
+                const renderer = document.getElementById('renderer-select').value;
+                const wasmModule = await import('../dist/canvas-kit.esm.js');
+
+                TVG = await wasmModule.init({
+                    renderer: renderer,
+                    locateFile: (path) => '../dist/' + path.split('/').pop()
+                });
+
+                canvas = new TVG.Canvas('#canvas', {
+                    width: 600,
+                    height: 600,
+                    renderer: renderer
+                });
+
+                isInitialized = true;
+                updateStatus('Ready - ThorVG initialized successfully', 'success');
+
+                // Run initial code
+                runCode();
+            } catch (error) {
+                updateStatus('Initialization error: ' + error.message, 'error');
+                console.error(error);
+            }
+        }
+
+        // Run user code
+        window.runCode = function() {
+            if (!isInitialized) {
+                updateStatus('Error: ThorVG not initialized', 'error');
+                return;
+            }
+
+            try {
+                // Clear canvas before running new code
+                canvas.clear();
+
+                // Get user code
+                const code = document.getElementById('code-editor').value;
+
+                // Execute user code in a context where TVG and canvas are available
+                const func = new Function('TVG', 'canvas', code);
+                func(TVG, canvas);
+
+                // Render the canvas
+                canvas.render();
+
+                updateStatus('Code executed successfully', 'success');
+            } catch (error) {
+                updateStatus('Error: ' + error.message, 'error');
+                console.error(error);
+            }
+        };
+
+        // Clear canvas
+        window.clearCanvas = function() {
+            if (!canvas) {
+                updateStatus('Error: Canvas not initialized', 'error');
+                return;
+            }
+            canvas.clear();
+            updateStatus('Canvas cleared', 'success');
+        };
+
+        // Update status bar
+        function updateStatus(message, type = 'info') {
+            const statusBar = document.getElementById('status-bar');
+            statusBar.textContent = message;
+            statusBar.className = 'status-bar';
+            if (type === 'error' || type === 'success') {
+                statusBar.classList.add(type);
+            }
+        }
+
+        // Handle example selection
+        document.getElementById('example-select').addEventListener('change', (e) => {
+            const example = examples[e.target.value];
+            document.getElementById('code-editor').value = example;
+
+            if (document.getElementById('auto-run').checked) {
+                scheduleAutoRun();
+            }
+        });
+
+        // Handle renderer change
+        document.getElementById('renderer-select').addEventListener('change', async (e) => {
+            if (canvas) {
+                canvas.destroy();
+            }
+            isInitialized = false;
+            await initializeThorVG();
+        });
+
+        // Auto-run with debounce
+        function scheduleAutoRun() {
+            if (autoRunTimeout) {
+                clearTimeout(autoRunTimeout);
+            }
+            autoRunTimeout = setTimeout(() => {
+                if (document.getElementById('auto-run').checked) {
+                    runCode();
+                }
+            }, 500);
+        }
+
+        // Handle code editor changes
+        document.getElementById('code-editor').addEventListener('input', () => {
+            if (document.getElementById('auto-run').checked) {
+                scheduleAutoRun();
+            }
+        });
+
+        // Keyboard shortcuts
+        document.getElementById('code-editor').addEventListener('keydown', (e) => {
+            // Cmd/Ctrl + Enter to run
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                e.preventDefault();
+                runCode();
+            }
+
+            // Tab key support
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = e.target.selectionStart;
+                const end = e.target.selectionEnd;
+                const value = e.target.value;
+
+                e.target.value = value.substring(0, start) + '  ' + value.substring(end);
+                e.target.selectionStart = e.target.selectionEnd = start + 2;
+            }
+        });
+
+        // Load initial example
+        document.getElementById('code-editor').value = examples.basic;
+
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            initializeThorVG();
+        });
+    </script>
+</body>
+</html>
