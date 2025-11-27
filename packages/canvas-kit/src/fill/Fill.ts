@@ -34,32 +34,38 @@ export abstract class Fill extends WasmObject {
 
   /**
    * Apply collected color stops to the gradient
+   * ColorStop struct: {float offset, uint8_t r, g, b, a} = 8 bytes per stop
    */
   protected _applyStops(): void {
     if (this._stops.length === 0) return;
 
     const Module = getModule();
     const count = this._stops.length;
-    const stopsPtr = Module._malloc(count * 20); // ColorStop struct size: 4 bytes (float) + 4 bytes (RGBA)
+    const stopsPtr = Module._malloc(count * 8); // 8 bytes per stop
 
-    for (let i = 0; i < count; i++) {
-      const stop = this._stops[i]!;
-      const offset = stopsPtr + i * 20;
+    try {
+      // Use DataView for proper cross-platform byte alignment
+      const dataView = new DataView(Module.HEAPU8.buffer, stopsPtr, count * 8);
 
-      // Write offset (float)
-      Module.HEAPF32[offset / 4] = stop.offset;
+      for (let i = 0; i < count; i++) {
+        const stop = this._stops[i]!;
+        const offset = i * 8;
 
-      // Write color (4 bytes)
-      Module.HEAPU8[offset + 4] = stop.color[0];
-      Module.HEAPU8[offset + 5] = stop.color[1];
-      Module.HEAPU8[offset + 6] = stop.color[2];
-      Module.HEAPU8[offset + 7] = stop.color[3];
+        // Write offset (float, 4 bytes, little-endian)
+        dataView.setFloat32(offset, stop.offset, true);
+
+        // Write color (4 bytes: r, g, b, a)
+        dataView.setUint8(offset + 4, stop.color[0]);
+        dataView.setUint8(offset + 5, stop.color[1]);
+        dataView.setUint8(offset + 6, stop.color[2]);
+        dataView.setUint8(offset + 7, stop.color[3]);
+      }
+
+      Module._tvg_gradient_set_color_stops(this.ptr, stopsPtr, count);
+    } finally {
+      Module._free(stopsPtr);
+      this._stops = [];
     }
-
-    Module._tvg_gradient_set_color_stops(this.ptr, stopsPtr, count);
-    Module._free(stopsPtr);
-
-    this._stops = [];
   }
 
   /**
