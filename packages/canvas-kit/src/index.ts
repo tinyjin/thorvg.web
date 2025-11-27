@@ -38,12 +38,13 @@ async function init(options: InitOptions = {}): Promise<ThorVGNamespace> {
   const { locateFile } = options;
 
   // Import the WASM module dynamically
-  const ThorVGModuleFactory = (await import('../dist/thorvg.js')).default;
+  // Note: This import is resolved at runtime after WASM build
+  const ThorVGModuleFactory = (await import('../dist/thorvg.js' as any)).default;
 
   // Load WASM module
   Module = await ThorVGModuleFactory({
     locateFile: locateFile ?? ((path: string) => path),
-  });
+  }) as ThorVGModule;
 
   // Initialize WebGPU if needed (async)
   let status: number;
@@ -118,15 +119,10 @@ export default ThorVG;
 export { init, Canvas, Shape, Scene, LinearGradient, RadialGradient, constants };
 
 // Re-export types
-export type {
-  InitOptions,
-  ThorVGNamespace,
-  CanvasOptions,
-  Bounds,
-  RectOptions,
-  StrokeOptions,
-  ColorStop,
-} from './index';
+export type { CanvasOptions } from './canvas/Canvas';
+export type { Bounds } from './paint/Paint';
+export type { RectOptions, StrokeOptions } from './paint/Shape';
+export type { ColorStop } from './fill/Fill';
 export type { RendererType, StrokeCapType, StrokeJoinType, GradientSpreadType } from './constants';
 
 // Re-export enums

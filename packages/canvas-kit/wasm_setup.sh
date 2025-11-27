@@ -1,7 +1,34 @@
 #!/bin/bash
 
+# Canvas Kit WASM Setup Script
+# Builds WASM and copies output to dist/
+
 echo "EMSDK: $EMSDK"
 
-# Build default variant with all backends (sw, gl, wg)
-rm -rf build_wasm && sh ./wasm_build.sh $EMSDK/
-mv thorvg/build_wasm/src/bindings/wasm/thorvg.{wasm,js,d.ts} ./dist
+if [ -z "$EMSDK" ]; then
+  echo "ERROR: EMSDK environment variable is not set!"
+  echo "Please set EMSDK to your Emscripten SDK path."
+  exit 1
+fi
+
+# Build WASM with all backends (sw, gl, wg)
+echo "Building ThorVG WASM with Canvas Kit bindings..."
+sh ./wasm_build.sh "$EMSDK/"
+
+if [ $? -ne 0 ]; then
+  echo "WASM build failed!"
+  exit 1
+fi
+
+# Copy output files to dist/
+echo "Copying WASM output to dist/..."
+cp thorvg/build_wasm_canvaskit/src/bindings/wasm/thorvg.wasm ./dist/
+cp thorvg/build_wasm_canvaskit/src/bindings/wasm/thorvg.js ./dist/
+
+# Copy TypeScript definitions if they exist
+if [ -f thorvg/build_wasm_canvaskit/src/bindings/wasm/thorvg.d.ts ]; then
+  cp thorvg/build_wasm_canvaskit/src/bindings/wasm/thorvg.d.ts ./dist/
+fi
+
+echo "WASM setup completed successfully!"
+ls -lh ./dist/thorvg.*

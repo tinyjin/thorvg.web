@@ -14,7 +14,7 @@ export class RadialGradient extends Fill {
     Module._tvg_radial_gradient_set(ptr, cx, cy, r, fx, fy, fr);
   }
 
-  public addStop(offset: number, color: readonly [number, number, number, number]): this {
+  public override addStop(offset: number, color: readonly [number, number, number, number]): this {
     super.addStop(offset, color);
     this._applyStops();
     return this;

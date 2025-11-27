@@ -7,11 +7,9 @@ import type { RegistryToken } from './Registry';
 export abstract class WasmObject {
   #ptr: number = 0;
   #disposed: boolean = false;
-  #registry: FinalizationRegistry<RegistryToken> | null = null;
 
   constructor(ptr: number, registry?: FinalizationRegistry<RegistryToken>) {
     this.#ptr = ptr;
-    this.#registry = registry ?? null;
 
     // Register for automatic cleanup
     if (registry) {

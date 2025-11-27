@@ -27,7 +27,7 @@ export class Canvas {
     const Module = getModule();
 
     // Resolve renderer
-    let backend = renderer;
+    let backend: string = renderer;
     if (renderer === 'auto') {
       backend = this._detectBestRenderer();
     }

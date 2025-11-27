@@ -14,7 +14,7 @@ export class LinearGradient extends Fill {
     Module._tvg_linear_gradient_set(ptr, x1, y1, x2, y2);
   }
 
-  public addStop(offset: number, color: readonly [number, number, number, number]): this {
+  public override addStop(offset: number, color: readonly [number, number, number, number]): this {
     super.addStop(offset, color);
     this._applyStops();
     return this;

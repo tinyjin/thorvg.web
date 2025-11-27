@@ -35,7 +35,9 @@ export class Shape extends Paint {
   protected _createInstance(ptr: number): Shape {
     // Create shape from existing pointer (for duplicate)
     const shape = Object.create(Shape.prototype) as Shape;
-    Paint.call(shape, ptr, shapeRegistry);
+    // Manually initialize the shape with the new pointer
+    Object.setPrototypeOf(shape, Shape.prototype);
+    (shape as any).ptr = ptr;
     return shape;
   }
 

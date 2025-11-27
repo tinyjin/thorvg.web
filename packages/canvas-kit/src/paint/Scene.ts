@@ -18,7 +18,9 @@ export class Scene extends Paint {
 
   protected _createInstance(ptr: number): Scene {
     const scene = Object.create(Scene.prototype) as Scene;
-    Paint.call(scene, ptr, sceneRegistry);
+    // Manually initialize the scene with the new pointer
+    Object.setPrototypeOf(scene, Scene.prototype);
+    (scene as any).ptr = ptr;
     return scene;
   }
 
