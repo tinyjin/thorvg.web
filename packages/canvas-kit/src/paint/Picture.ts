@@ -1,6 +1,7 @@
 /**
  * Picture class for loading and rendering images and vector files
  * Supports SVG, PNG, JPG, WebP, and Lottie files
+ * @category Picture
  */
 
 import { Paint } from './Paint';
@@ -8,8 +9,20 @@ import { getModule } from '../core/Module';
 import { pictureRegistry } from '../core/Registry';
 import { checkResult } from '../core/errors';
 
+/**
+ * Supported image and vector file formats for Picture.
+ * - `'svg'`: Scalable Vector Graphics
+ * - `'png'`: Portable Network Graphics (raster)
+ * - `'jpg'`/`'jpeg'`: JPEG image format (raster)
+ * - `'webp'`: WebP image format (raster)
+ * - `'lottie'`/`'json'`: Lottie animation format (as static image)
+ * @category Picture
+ */
 export type PictureFormat = 'svg' | 'png' | 'jpg' | 'jpeg' | 'webp' | 'lottie' | 'json';
 
+/**
+ * @category Picture
+ */
 export interface LoadDataOptions {
   /** MIME type or format hint (e.g., 'svg', 'png', 'jpg') */
   format?: PictureFormat;
@@ -19,11 +32,47 @@ export interface LoadDataOptions {
   copy?: boolean;
 }
 
+/**
+ * @category Picture
+ */
 export interface PictureSize {
   width: number;
   height: number;
 }
 
+/**
+ * Picture class for loading and displaying images and vector graphics
+ * @category Picture
+ *
+ * @example
+ * ```typescript
+ * // Loading an SVG image
+ * const picture = new TVG.Picture();
+ *
+ * fetch('/images/logo.svg')
+ *   .then(res => res.text())
+ *   .then(svgData => {
+ *     picture.load(svgData, { format: 'svg' });
+ *     const size = picture.size();
+ *     picture.size(200, 200 * size.height / size.width); // Scale
+ *     canvas.add(picture).render();
+ *   });
+ * ```
+ *
+ * @example
+ * ```typescript
+ * // Loading a Lottie animation as static image
+ * const picture = new TVG.Picture();
+ *
+ * fetch('/animations/loading.json')
+ *   .then(res => res.text())
+ *   .then(lottieData => {
+ *     picture.load(lottieData, { format: 'lottie' });
+ *     picture.translate(400, 300);
+ *     canvas.add(picture);
+ *   });
+ * ```
+ */
 export class Picture extends Paint {
   constructor(ptr?: number, skipRegistry: boolean = false) {
     const Module = getModule();

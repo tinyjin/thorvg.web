@@ -59,10 +59,10 @@ export class Animation extends Picture {
   public getFrame(): number {
     const Module = getModule();
     const framePtr = Module._malloc(4);
-    const result = Module._tvg_animation_get_frame(this.#animPtr, framePtr);
+    const result = Module._tvg_animation_get_frame(this.#animPtr);
     checkResult(result, 'getFrame');
 
-    const frame = Module.HEAPF32[framePtr / 4];
+    const frame = Module.HEAPF32[framePtr / 4] ?? 0;
     Module._free(framePtr);
     return frame;
   }
@@ -76,7 +76,7 @@ export class Animation extends Picture {
     const result = Module._tvg_animation_get_total_frame(this.#animPtr, totalPtr);
     checkResult(result, 'getTotalFrames');
 
-    const total = Module.HEAPF32[totalPtr / 4];
+    const total = Module.HEAPF32[totalPtr / 4] ?? 0;
     Module._free(totalPtr);
     return total;
   }
@@ -90,7 +90,7 @@ export class Animation extends Picture {
     const result = Module._tvg_animation_get_duration(this.#animPtr, durationPtr);
     checkResult(result, 'getDuration');
 
-    const duration = Module.HEAPF32[durationPtr / 4];
+    const duration = Module.HEAPF32[durationPtr / 4] ?? 0;
     Module._free(durationPtr);
     return duration;
   }
@@ -100,7 +100,11 @@ export class Animation extends Picture {
    */
   public segment(startFrame: number, endFrame: number): this {
     const Module = getModule();
-    const result = Module._tvg_animation_set_segment(this.#animPtr, startFrame, endFrame);
+    const segmentPtr = Module._malloc(8);
+    Module.HEAPF32[segmentPtr / 4] = startFrame;
+    Module.HEAPF32[(segmentPtr + 4) / 4] = endFrame;
+    const result = Module._tvg_animation_set_segment(this.#animPtr, segmentPtr);
+    Module._free(segmentPtr);
     checkResult(result, 'segment');
     return this;
   }
@@ -112,11 +116,11 @@ export class Animation extends Picture {
     const Module = getModule();
     const segmentPtr = Module._malloc(8); // 2 floats
 
-    const result = Module._tvg_animation_get_segment(this.#animPtr, segmentPtr, segmentPtr + 4);
+    const result = Module._tvg_animation_set_segment(this.#animPtr, segmentPtr);
     checkResult(result, 'getSegment');
 
-    const start = Module.HEAPF32[segmentPtr / 4];
-    const end = Module.HEAPF32[(segmentPtr + 4) / 4];
+    const start = Module.HEAPF32[segmentPtr / 4] ?? 0;
+    const end = Module.HEAPF32[(segmentPtr + 4) / 4] ?? 0;
 
     Module._free(segmentPtr);
     return { start, end };

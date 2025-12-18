@@ -1,5 +1,6 @@
 /**
  * Text class for rendering text with custom fonts and styling
+ * @category Text
  */
 
 import { Paint } from './Paint';
@@ -10,21 +11,74 @@ import { checkResult } from '../core/errors';
 import type { TextWrapModeType } from '../constants';
 import { TextWrapMode } from '../constants';
 
+/**
+ * @category Text
+ */
 export interface TextAlign {
   horizontal: number; // 0.0 (left) to 1.0 (right)
   vertical: number;   // 0.0 (top) to 1.0 (bottom)
 }
 
+/**
+ * @category Text
+ */
 export interface TextLayout {
   width: number;
   height?: number;
 }
 
+/**
+ * @category Text
+ */
 export interface TextOutline {
   width: number;
   color: readonly [number, number, number]; // RGB
 }
 
+/**
+ * Text rendering class with font support
+ * @category Text
+ *
+ * @example
+ * ```typescript
+ * // Basic text rendering
+ * const text = new TVG.Text();
+ * text.font('Arial', 48)
+ *     .text('Hello ThorVG!')
+ *     .fill(50, 50, 50, 255)
+ *     .translate(100, 200);
+ *
+ * canvas.add(text);
+ * ```
+ *
+ * @example
+ * ```typescript
+ * // Text with custom font and styling
+ * // Load custom font first
+ * const fontData = await fetch('/fonts/custom.ttf').then(r => r.arrayBuffer());
+ * TVG.Font.load('CustomFont', new Uint8Array(fontData));
+ *
+ * const text = new TVG.Text();
+ * text.font('CustomFont', 64)
+ *     .text('Custom Font')
+ *     .fill(100, 150, 255, 255)
+ *     .stroke(50, 50, 50, 255, 2);
+ *
+ * canvas.add(text);
+ * ```
+ *
+ * @example
+ * ```typescript
+ * // Multi-line text with wrapping
+ * const text = new TVG.Text();
+ * text.font('Arial', 24)
+ *     .text('This is a long text that will wrap across multiple lines')
+ *     .fill(50, 50, 50, 255)
+ *     .wrap({ width: 300, height: 200 }, 'word');
+ *
+ * canvas.add(text);
+ * ```
+ */
 export class Text extends Paint {
   constructor() {
     const Module = getModule();

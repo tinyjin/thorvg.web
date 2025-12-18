@@ -1,13 +1,23 @@
 /**
  * Font utility for loading custom fonts
  * Fonts are globally available once loaded
+ * @category Font
  */
 
 import { getModule } from './Module';
 import { checkResult } from './errors';
 
+/**
+ * Supported font file formats.
+ * - `'ttf'`: TrueType Font
+ * - `'otf'`: OpenType Font
+ * @category Font
+ */
 export type FontFormat = 'ttf' | 'otf';
 
+/**
+ * @category Font
+ */
 export interface LoadFontOptions {
   /** Font format (e.g., 'ttf', 'otf') */
   format?: FontFormat;
@@ -18,6 +28,47 @@ export interface LoadFontOptions {
 /**
  * Font loader utility
  * Fonts are loaded globally and can be referenced by name in Text objects
+ * @category Font
+ *
+ * @example
+ * ```typescript
+ * // Loading a custom font from URL
+ * // Fetch and load custom font
+ * const fontData = await fetch('/fonts/Roboto-Regular.ttf')
+ *   .then(res => res.arrayBuffer());
+ *
+ * TVG.Font.load('Roboto', new Uint8Array(fontData), { format: 'ttf' });
+ *
+ * // Use the loaded font
+ * const text = new TVG.Text();
+ * text.font('Roboto', 48)
+ *     .text('Hello with custom font!')
+ *     .fill(50, 50, 50, 255);
+ *
+ * canvas.add(text);
+ * ```
+ *
+ * @example
+ * ```typescript
+ * // Loading multiple fonts
+ * async function loadFonts() {
+ *   const fonts = [
+ *     { name: 'Roboto-Regular', url: '/fonts/Roboto-Regular.ttf' },
+ *     { name: 'Roboto-Bold', url: '/fonts/Roboto-Bold.ttf' }
+ *   ];
+ *
+ *   for (const font of fonts) {
+ *     const data = await fetch(font.url).then(r => r.arrayBuffer());
+ *     TVG.Font.load(font.name, new Uint8Array(data));
+ *   }
+ * }
+ *
+ * await loadFonts();
+ *
+ * // Now use any loaded font
+ * const text = new TVG.Text();
+ * text.font('Roboto-Bold', 64).text('Bold Text');
+ * ```
  */
 export class Font {
   /**

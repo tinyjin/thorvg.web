@@ -1,5 +1,6 @@
 /**
- * Scene class for grouping paints
+ * Scene class for grouping and managing multiple Paint objects
+ * @category Scene
  */
 
 import { Paint } from './Paint';
@@ -7,6 +8,42 @@ import { getModule } from '../core/Module';
 import { sceneRegistry } from '../core/Registry';
 import { checkResult } from '../core/errors';
 
+/**
+ * Scene class for hierarchical grouping of Paint objects
+ * @category Scene
+ *
+ * @example
+ * ```typescript
+ * // Grouping shapes in a scene
+ * const scene = new TVG.Scene();
+ *
+ * const background = new TVG.Shape();
+ * background.appendRect(0, 0, 800, 600).fill(240, 240, 240, 255);
+ *
+ * const circle = new TVG.Shape();
+ * circle.appendCircle(100, 100, 50).fill(255, 100, 100, 255);
+ *
+ * scene.push(background, circle);
+ * canvas.add(scene);
+ * ```
+ *
+ * @example
+ * ```typescript
+ * // Scene transformations affect all children
+ * const scene = new TVG.Scene();
+ *
+ * for (let i = 0; i < 5; i++) {
+ *   const shape = new TVG.Shape();
+ *   shape.appendRect(i * 60, 100, 50, 50)
+ *        .fill(100 + i * 30, 150, 255 - i * 30, 255);
+ *   scene.push(shape);
+ * }
+ *
+ * // Transform entire group
+ * scene.translate(200, 200).rotate(30);
+ * canvas.add(scene);
+ * ```
+ */
 export class Scene extends Paint {
   #children = new Set<Paint>();
 

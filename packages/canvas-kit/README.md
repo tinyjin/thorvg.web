@@ -326,7 +326,14 @@ TVG.Font.unload(name)
 
 ### Documentation
 
-- **[API Reference](./API_REFERENCE.md)** - Complete API documentation with detailed method signatures
+- **[API Documentation](./docs/index.html)** - Standard TypeDoc hierarchical documentation
+- **[Manual Documentation](./API_REFERENCE.md)** - Complete API documentation with detailed method signatures
+
+To generate documentation locally:
+```bash
+npm run docs        # Generates both navigation styles
+open docs/index.html
+```
 
 ### Interactive Examples
 

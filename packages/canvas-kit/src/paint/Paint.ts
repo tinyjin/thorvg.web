@@ -5,6 +5,9 @@
 import { WasmObject } from '../core/WasmObject';
 import { getModule } from '../core/Module';
 
+/**
+ * @category Shapes
+ */
 export interface Bounds {
   x: number;
   y: number;

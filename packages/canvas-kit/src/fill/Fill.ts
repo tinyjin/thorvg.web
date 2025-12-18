@@ -1,5 +1,6 @@
 /**
  * Base class for Fill objects (gradients)
+ * @category Gradients
  */
 
 import { WasmObject } from '../core/WasmObject';
@@ -7,6 +8,9 @@ import { getModule } from '../core/Module';
 import type { GradientSpreadType } from '../constants';
 import { GradientSpread } from '../constants';
 
+/**
+ * @category Gradients
+ */
 export type ColorStop = readonly [number, number, number, number];
 
 interface ColorStopEntry {

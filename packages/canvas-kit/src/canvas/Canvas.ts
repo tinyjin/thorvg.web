@@ -1,5 +1,45 @@
 /**
- * Canvas class for rendering ThorVG content
+ * Canvas rendering context for ThorVG vector graphics.
+ *
+ * The Canvas class manages the rendering context and provides methods for drawing
+ * vector graphics to an HTML canvas element. It supports multiple rendering backends
+ * (Software, WebGL, WebGPU) and handles the render loop.
+ *
+ * @category Canvas
+ *
+ * @example
+ * Basic usage
+ * ```typescript
+ * const TVG = await ThorVG.init();
+ * const canvas = new TVG.Canvas('#canvas', {
+ *   renderer: 'gl',
+ *   width: 800,
+ *   height: 600
+ * });
+ *
+ * const shape = new TVG.Shape();
+ * shape.appendCircle(400, 300, 100)
+ *      .fill(255, 0, 0, 255);
+ *
+ * canvas.add(shape).render();
+ * ```
+ *
+ * @example
+ * Rendering with animation loop
+ * ```typescript
+ * const canvas = new TVG.Canvas('#canvas');
+ * const animation = new TVG.Animation();
+ * await animation.load(lottieData);
+ *
+ * canvas.add(animation.picture);
+ *
+ * function animate() {
+ *   animation.frame(currentFrame++);
+ *   canvas.update().render();
+ *   requestAnimationFrame(animate);
+ * }
+ * animate();
+ * ```
  */
 
 import { getModule } from '../core/Module';
@@ -10,18 +50,90 @@ import type { TvgCanvasInstance } from '../types/emscripten';
 
 const DEFAULT_RENDERER: RendererType = 'gl';
 
+/**
+ * Configuration options for Canvas initialization.
+ *
+ * @category Canvas
+ */
 export interface CanvasOptions {
+  /** Rendering backend: 'sw' (Software), 'gl' (WebGL), or 'wg' (WebGPU). Default: 'gl' */
   renderer?: RendererType;
+  /** Canvas width in pixels. Default: 800 */
   width?: number;
+  /** Canvas height in pixels. Default: 600 */
   height?: number;
 }
 
+/**
+ * Canvas rendering context for ThorVG vector graphics.
+ *
+ * Manages the rendering pipeline and provides methods for adding/removing Paint objects
+ * and controlling the render loop.
+ *
+ * @category Canvas
+ *
+ * @example
+ * ```typescript
+ * // Basic canvas setup with shapes
+ * const canvas = new TVG.Canvas('#canvas', { width: 800, height: 600 });
+ *
+ * const shape = new TVG.Shape();
+ * shape.appendRect(100, 100, 200, 150, 10)
+ *      .fill(255, 100, 50, 255);
+ *
+ * canvas.add(shape).render();
+ * ```
+ *
+ * @example
+ * ```typescript
+ * // Animation loop
+ * const canvas = new TVG.Canvas('#canvas');
+ * const shape = new TVG.Shape();
+ *
+ * let rotation = 0;
+ * function animate() {
+ *   shape.reset()
+ *        .appendRect(0, 0, 100, 100)
+ *        .fill(100, 150, 255, 255)
+ *        .rotate(rotation++)
+ *        .translate(400, 300);
+ *
+ *   canvas.update().render();
+ *   requestAnimationFrame(animate);
+ * }
+ * animate();
+ * ```
+ */
 export class Canvas {
   #ptr: number = 0;
   #engine: TvgCanvasInstance | null = null;
   #renderer: RendererType = DEFAULT_RENDERER;
   #htmlCanvas: HTMLCanvasElement | null = null;
 
+  /**
+   * Creates a new Canvas rendering context.
+   *
+   * @param selector - CSS selector for the target HTML canvas element (e.g., '#canvas', '.my-canvas')
+   * @param options - Configuration options for the canvas
+   *
+   * @throws {Error} If the canvas element is not found or renderer initialization fails
+   *
+   * @example
+   * ```typescript
+   * // Basic canvas with default options
+   * const canvas = new TVG.Canvas('#canvas');
+   * ```
+   *
+   * @example
+   * ```typescript
+   * // Canvas with WebGPU renderer and custom size
+   * const canvas = new TVG.Canvas('#myCanvas', {
+   *   renderer: 'wg',
+   *   width: 1920,
+   *   height: 1080
+   * });
+   * ```
+   */
   constructor(selector: string, options: CanvasOptions = {}) {
     const { renderer = DEFAULT_RENDERER, width = 800, height = 600 } = options;
 
@@ -49,7 +161,28 @@ export class Canvas {
   }
 
   /**
-   * Add paints to the canvas
+   * Adds one or more Paint objects to the canvas for rendering.
+   *
+   * Paint objects include Shape, Scene, Picture, Text, and Animation.picture.
+   * Objects are rendered in the order they are added (painter's algorithm).
+   *
+   * @param paints - One or more Paint objects to add to the canvas
+   * @returns The canvas instance for method chaining
+   *
+   * @example
+   * ```typescript
+   * const shape = new TVG.Shape();
+   * const text = new TVG.Text();
+   * canvas.add(shape, text);
+   * ```
+   *
+   * @example
+   * Method chaining
+   * ```typescript
+   * canvas.add(shape1)
+   *       .add(shape2)
+   *       .render();
+   * ```
    */
   public add(...paints: Paint[]): this {
     const Module = getModule();
@@ -61,8 +194,22 @@ export class Canvas {
   }
 
   /**
-   * Remove paint(s) from the canvas
-   * If no paint is provided, removes all paints
+   * Removes one or all Paint objects from the canvas.
+   *
+   * @param paint - Optional Paint object to remove. If omitted, removes all Paint objects.
+   * @returns The canvas instance for method chaining
+   *
+   * @example
+   * Remove a specific paint
+   * ```typescript
+   * canvas.remove(shape);
+   * ```
+   *
+   * @example
+   * Remove all paints
+   * ```typescript
+   * canvas.remove();
+   * ```
    */
   public remove(paint?: Paint): this {
     if (paint) {
@@ -78,7 +225,17 @@ export class Canvas {
   }
 
   /**
-   * Clear all paints from the canvas
+   * Clears all Paint objects from the canvas and renders an empty frame.
+   *
+   * This is equivalent to {@link remove | remove()} without arguments,
+   * but also immediately renders the cleared canvas.
+   *
+   * @returns The canvas instance for method chaining
+   *
+   * @example
+   * ```typescript
+   * canvas.clear(); // Clears and renders empty canvas
+   * ```
    */
   public clear(): this {
     if (!this.#engine) {
@@ -101,8 +258,27 @@ export class Canvas {
   }
 
   /**
-   * Update the canvas (required before rendering, especially for animations)
-   * FIXME: Can be removed if we can call this in render()
+   * Updates the canvas state before rendering.
+   *
+   * This method should be called before {@link render} when working with animations
+   * or when Paint objects have been modified. It ensures all transformations and
+   * changes are processed.
+   *
+   * @returns The canvas instance for method chaining
+   *
+   * @example
+   * Animation loop pattern
+   * ```typescript
+   * function animate() {
+   *   animation.frame(currentFrame++);
+   *   canvas.update().render();
+   *   requestAnimationFrame(animate);
+   * }
+   * ```
+   *
+   * @remarks
+   * For static scenes, calling {@link render} alone is sufficient.
+   * For animated content, always call update() before render().
    */
   public update(): this {
     const Module = getModule();
@@ -112,8 +288,31 @@ export class Canvas {
   }
 
   /**
-   * Render the canvas
-   * Note: For animations, call update() first, then render()
+   * Renders all Paint objects to the canvas.
+   *
+   * This method draws all added Paint objects to the canvas using the configured
+   * rendering backend (Software, WebGL, or WebGPU).
+   *
+   * @returns The canvas instance for method chaining
+   *
+   * @example
+   * Static rendering
+   * ```typescript
+   * canvas.add(shape, text).render();
+   * ```
+   *
+   * @example
+   * Animation loop
+   * ```typescript
+   * function animate() {
+   *   canvas.update().render();
+   *   requestAnimationFrame(animate);
+   * }
+   * ```
+   *
+   * @remarks
+   * For animated content, call {@link update} before render().
+   * For static scenes, render() can be called directly.
    */
   public render(): this {
     const Module = getModule();
@@ -145,7 +344,24 @@ export class Canvas {
   }
 
   /**
-   * Resize the canvas
+   * Resizes the canvas to new dimensions.
+   *
+   * @param width - New width in pixels
+   * @param height - New height in pixels
+   * @returns The canvas instance for method chaining
+   *
+   * @example
+   * ```typescript
+   * canvas.resize(1920, 1080).render();
+   * ```
+   *
+   * @example
+   * Responsive canvas
+   * ```typescript
+   * window.addEventListener('resize', () => {
+   *   canvas.resize(window.innerWidth, window.innerHeight).render();
+   * });
+   * ```
    */
   public resize(width: number, height: number): this {
     if (this.#engine) {
@@ -155,7 +371,22 @@ export class Canvas {
   }
 
   /**
-   * Set viewport for rendering
+   * Sets the viewport for rendering a specific region of the canvas.
+   *
+   * The viewport defines the rectangular region where rendering occurs.
+   * Useful for rendering to a portion of the canvas or implementing split-screen views.
+   *
+   * @param x - X coordinate of the viewport origin
+   * @param y - Y coordinate of the viewport origin
+   * @param w - Viewport width
+   * @param h - Viewport height
+   * @returns The canvas instance for method chaining
+   *
+   * @example
+   * ```typescript
+   * // Render to top-left quarter of canvas
+   * canvas.viewport(0, 0, canvas.width / 2, canvas.height / 2);
+   * ```
    */
   public viewport(x: number, y: number, w: number, h: number): this {
     const Module = getModule();
@@ -165,8 +396,22 @@ export class Canvas {
   }
 
   /**
-   * Destroy this canvas and free its WASM memory
-   * Module stays alive, you can create new canvas
+   * Destroys the canvas and frees its WASM memory.
+   *
+   * After calling destroy(), this canvas instance cannot be used.
+   * The ThorVG module remains loaded and new canvases can be created.
+   *
+   * @example
+   * ```typescript
+   * canvas.destroy();
+   * // Create a new canvas
+   * const newCanvas = new TVG.Canvas('#canvas');
+   * ```
+   *
+   * @remarks
+   * This method should be called when you're done with a canvas to free memory.
+   * It's particularly important in single-page applications where canvases
+   * may be created and destroyed frequently.
    */
   public destroy(): void {
     // Clear all paints from canvas
@@ -194,7 +439,15 @@ export class Canvas {
   }
 
   /**
-   * Get the renderer being used
+   * Gets the rendering backend type currently in use.
+   *
+   * @returns The renderer type: 'sw' (Software), 'gl' (WebGL), or 'wg' (WebGPU)
+   *
+   * @example
+   * ```typescript
+   * const canvas = new TVG.Canvas('#canvas', { renderer: 'wg' });
+   * console.log(canvas.renderer); // 'wg'
+   * ```
    */
   public get renderer(): string {
     return this.#renderer;

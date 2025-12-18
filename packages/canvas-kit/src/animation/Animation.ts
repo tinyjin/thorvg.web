@@ -1,17 +1,24 @@
 /**
  * Animation class for loading and controlling Lottie animations
+ * @category Animation
  */
 
 import { getModule } from '../core/Module';
 import { Picture } from '../paint/Picture';
 import { checkResult } from '../core/errors';
 
+/**
+ * @category Animation
+ */
 export interface AnimationInfo {
   totalFrames: number;
   duration: number; // in seconds
   fps: number;
 }
 
+/**
+ * @category Animation
+ */
 export interface AnimationSegment {
   start: number;
   end: number;
@@ -20,6 +27,63 @@ export interface AnimationSegment {
 /**
  * Animation controller for Lottie animations
  * The Animation owns a Picture internally and manages frame updates
+ * @category Animation
+ *
+ * @example
+ * ```typescript
+ * // Loading and playing a Lottie animation
+ * const animation = new TVG.Animation();
+ *
+ * fetch('/animations/loader.json')
+ *   .then(res => res.text())
+ *   .then(lottieData => {
+ *     animation.load(lottieData);
+ *     const picture = animation.picture();
+ *
+ *     // Center and scale animation
+ *     const size = picture.size();
+ *     picture.translate(400 - size.width / 2, 300 - size.height / 2);
+ *
+ *     canvas.add(picture);
+ *     animation.play();
+ *   });
+ * ```
+ *
+ * @example
+ * ```typescript
+ * // Controlling animation playback
+ * const animation = new TVG.Animation();
+ * animation.load(lottieData);
+ *
+ * const info = animation.getInfo();
+ * console.log(`Duration: ${info.duration}s, FPS: ${info.fps}`);
+ *
+ * // Play with custom loop and speed
+ * animation.loop(true).play();
+ *
+ * // Pause after 2 seconds
+ * setTimeout(() => animation.pause(), 2000);
+ *
+ * // Jump to specific frame
+ * animation.frame(30).render();
+ * ```
+ *
+ * @example
+ * ```typescript
+ * // Animation segments and callbacks
+ * const animation = new TVG.Animation();
+ * animation.load(lottieData);
+ *
+ * // Play specific segment
+ * animation.segment({ start: 0, end: 60 });
+ *
+ * // Listen to frame updates
+ * animation.onFrame((frame) => {
+ *   console.log(`Current frame: ${frame}`);
+ * });
+ *
+ * animation.play();
+ * ```
  */
 export class Animation {
   #ptr: number;

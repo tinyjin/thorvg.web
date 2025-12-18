@@ -1,5 +1,41 @@
 /**
  * ThorVG Canvas Kit - TypeScript API for ThorVG
+ *
+ * @packageDocumentation
+ *
+ * A high-performance TypeScript Canvas API for ThorVG, providing an object-oriented
+ * interface with fluent API pattern for vector graphics rendering using WebAssembly.
+ *
+ * ## Features
+ *
+ * - **Intuitive OOP API** - Fluent interface with method chaining
+ * - **Type-Safe** - Full TypeScript support with strict typing
+ * - **High Performance** - WebGPU, WebGL, and Software rendering backends
+ * - **Automatic Memory Management** - FinalizationRegistry for garbage collection
+ * - **Method Chaining** - Ergonomic fluent API design
+ * - **Zero Overhead** - Direct WASM bindings with minimal abstraction
+ * - **Animation Support** - Frame-based Lottie animation playback
+ * - **Rich Primitives** - Shapes, scenes, pictures, text, and gradients
+ *
+ * @example
+ * ```typescript
+ * import ThorVG from '@thorvg/canvas-kit';
+ *
+ * // Initialize ThorVG
+ * const TVG = await ThorVG.init({
+ *   locateFile: (path) => `/wasm/${path}`,
+ *   renderer: 'gl'
+ * });
+ *
+ * // Create canvas and draw
+ * const canvas = new TVG.Canvas('#canvas', { width: 800, height: 600 });
+ * const shape = new TVG.Shape();
+ * shape.appendRect(100, 100, 200, 150)
+ *      .fill(255, 0, 0, 255);
+ * canvas.add(shape).render();
+ * ```
+ *
+ * @module
  */
 
 import type { ThorVGModule } from './types/emscripten';
@@ -16,8 +52,13 @@ import * as constants from './constants';
 // @ts-ignore - thorvg.js is generated during build
 import ThorVGModuleFactory from '../dist/thorvg.js';
 
+/**
+ * @category Initialization
+ */
 export interface InitOptions {
+  /** Optional function to locate WASM files. If not provided, assumes WASM files are in the same directory as the JavaScript bundle. */
   locateFile?: (path: string) => string;
+  /** Renderer type: 'sw' (Software), 'gl' (WebGL), or 'wg' (WebGPU). Default: 'gl'. WebGPU provides best performance but requires Chrome 113+ or Edge 113+. */
   renderer?: 'sw' | 'gl' | 'wg';
 }
 
@@ -72,24 +113,55 @@ async function initEngine(engineType: 'sw' | 'gl' | 'wg' = 'gl'): Promise<void> 
 }
 
 /**
- * Initialize ThorVG WASM module and optionally initialize the engine
+ * Initialize ThorVG WASM module and rendering engine.
+ *
+ * This is the entry point for using ThorVG Canvas Kit. It loads the WebAssembly module
+ * and initializes the rendering engine with the specified backend (Software, WebGL, or WebGPU).
+ *
+ * @category Initialization
  * @param options - Initialization options
- * @param options.locateFile - Function to locate WASM files
- * @param options.renderer - Renderer type ('sw', 'gl', 'wg'). Default: 'gl'
- * @returns ThorVG namespace with all classes and utilities
+ * @param options.locateFile - Optional function to locate WASM files. If not provided, assumes
+ *                              WASM files are in the same directory as the JavaScript bundle.
+ * @param options.renderer - Renderer type: 'sw' (Software), 'gl' (WebGL), or 'wg' (WebGPU).
+ *                           Default: 'gl'. WebGPU provides best performance but requires
+ *                           Chrome 113+ or Edge 113+.
+ *
+ * @returns Promise that resolves to ThorVG namespace containing all classes and utilities
  *
  * @example
- * // Initialize with WebGL (default)
+ * ```typescript
+ * // Initialize with default WebGL renderer
+ * const TVG = await ThorVG.init();
+ * const canvas = new TVG.Canvas('#canvas');
+ * ```
+ *
+ * @example
+ * ```typescript
+ * // Initialize with custom WASM file location
  * const TVG = await ThorVG.init({
- *   locateFile: (path) => '../dist/' + path.split('/').pop()
+ *   locateFile: (path) => `/public/wasm/${path}`,
+ *   renderer: 'gl'
  * });
+ * ```
  *
  * @example
- * // Initialize with WebGPU
+ * ```typescript
+ * // Initialize with WebGPU for maximum performance
  * const TVG = await ThorVG.init({
  *   locateFile: (path) => '../dist/' + path.split('/').pop(),
  *   renderer: 'wg'
  * });
+ * ```
+ *
+ * @example
+ * ```typescript
+ * // Initialize with Software renderer for maximum compatibility
+ * const TVG = await ThorVG.init({
+ *   renderer: 'sw'
+ * });
+ * ```
+ *
+ * @throws {Error} If WASM module fails to load or engine initialization fails
  */
 async function init(options: InitOptions = {}): Promise<ThorVGNamespace> {
   if (initialized) {
@@ -102,7 +174,7 @@ async function init(options: InitOptions = {}): Promise<ThorVGNamespace> {
   // Load WASM module
   Module = await ThorVGModuleFactory({
     locateFile: locateFile ?? ((path: string) => path),
-  }) as ThorVGModule;
+  }) as unknown as ThorVGModule;
 
   // Make Module globally available for class constructors
   (globalThis as any).__ThorVGModule = Module;
@@ -176,15 +248,27 @@ export type { TextAlign, TextLayout, TextOutline } from './paint/Text';
 export type { AnimationInfo, AnimationSegment } from './animation/Animation';
 export type { LoadFontOptions, FontFormat } from './core/Font';
 export type { ColorStop } from './fill/Fill';
-export type { RendererType, StrokeCapType, StrokeJoinType, GradientSpreadType, TextWrapModeType } from './constants';
+/** @category Canvas */
+export type { RendererType } from './constants';
+/** @category Shape */
+export type { StrokeCapType, StrokeJoinType, FillRuleType } from './constants';
+/** @category Gradients */
+export type { GradientSpreadType } from './constants';
+/** @category Text */
+export type { TextWrapModeType } from './constants';
 
-// Re-export enums
-export {
-  BlendMethod,
-  StrokeCap,
-  StrokeJoin,
-  FillRule,
-  GradientSpread,
-  CompositeMethod,
-  TextWrapMode,
-} from './constants';
+// Re-export enums with categories
+/** @category Constants */
+export { BlendMethod } from './constants';
+/** @category Constants */
+export { CompositeMethod } from './constants';
+/** @category Shape */
+export { StrokeCap } from './constants';
+/** @category Shape */
+export { StrokeJoin } from './constants';
+/** @category Shape */
+export { FillRule } from './constants';
+/** @category Gradients */
+export { GradientSpread } from './constants';
+/** @category Text */
+export { TextWrapMode } from './constants';
