@@ -10,6 +10,36 @@
       "types": "./dist/webcanvas.d.ts",
       "import": "./dist/webcanvas.esm.js",
       "require": "./dist/webcanvas.cjs.js"
+    },
+    "./sw": {
+      "types": "./dist/webcanvas.d.ts",
+      "import": "./dist/sw/webcanvas.esm.js",
+      "require": "./dist/sw/webcanvas.cjs.js"
+    },
+    "./gl": {
+      "types": "./dist/webcanvas.d.ts",
+      "import": "./dist/gl/webcanvas.esm.js",
+      "require": "./dist/gl/webcanvas.cjs.js"
+    },
+    "./wg": {
+      "types": "./dist/webcanvas.d.ts",
+      "import": "./dist/wg/webcanvas.esm.js",
+      "require": "./dist/wg/webcanvas.cjs.js"
+    },
+    "./sw-lite": {
+      "types": "./dist/webcanvas.d.ts",
+      "import": "./dist/sw-lite/webcanvas.esm.js",
+      "require": "./dist/sw-lite/webcanvas.cjs.js"
+    },
+    "./gl-lite": {
+      "types": "./dist/webcanvas.d.ts",
+      "import": "./dist/gl-lite/webcanvas.esm.js",
+      "require": "./dist/gl-lite/webcanvas.cjs.js"
+    },
+    "./wg-lite": {
+      "types": "./dist/webcanvas.d.ts",
+      "import": "./dist/wg-lite/webcanvas.esm.js",
+      "require": "./dist/wg-lite/webcanvas.cjs.js"
     }
   },
   "publishConfig": {
