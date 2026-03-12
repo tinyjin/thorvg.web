@@ -43,6 +43,10 @@ build_preset() {
   else
     mv build_wasm_wcanvas/thorvg.js "$DEST/"
     mv build_wasm_wcanvas/thorvg.wasm "$DEST/"
+    # Copy worker file if present (pthread builds generate this for Web Worker threads)
+    if [ -f build_wasm_wcanvas/thorvg.worker.js ]; then
+      mv build_wasm_wcanvas/thorvg.worker.js "$DEST/"
+    fi
   fi
 
   echo "Preset ${ENGINE:-default} completed:"
@@ -62,6 +66,9 @@ build_preset "sw-lite" "./dist/sw-lite"
 build_preset "gl-lite" "./dist/gl-lite"
 build_preset "wg-lite" "./dist/wg-lite"
 
+# Pthread preset (all engines, all loaders, thread support)
+build_preset "pthread" "./dist/pthread"
+
 # Cleanup
 rm -rf build_wasm_wcanvas
 
@@ -71,7 +78,7 @@ echo "All WASM presets built successfully!"
 echo "================================================"
 echo ""
 echo "Preset sizes:"
-for dir in dist dist/sw dist/gl dist/wg dist/sw-lite dist/gl-lite dist/wg-lite; do
+for dir in dist dist/sw dist/gl dist/wg dist/sw-lite dist/gl-lite dist/wg-lite dist/pthread; do
   if [ -f "$dir/thorvg.wasm" ]; then
     SIZE=$(ls -lh "$dir/thorvg.wasm" | awk '{print $5}')
     echo "  $dir/thorvg.wasm: $SIZE"

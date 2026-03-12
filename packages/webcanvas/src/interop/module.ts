@@ -26,13 +26,17 @@ export function hasModule(): boolean {
 }
 
 /**
- * Allocate a null-terminated UTF-8 string in WASM memory.
- * Caller is responsible for calling Module._free() on the returned pointer.
+ * Sets the global thread count for Canvas instances
+ * @internal
  */
-export function allocString(Module: ThorVGModule, str: string): number {
-  const bytes = new TextEncoder().encode(str);
-  const ptr = Module._malloc(bytes.length + 1);
-  Module.HEAPU8.set(bytes, ptr);
-  Module.HEAPU8[ptr + bytes.length] = 0;
-  return ptr;
+export function setGlobalThreadCount(threads: number): void {
+  (globalThis as any).__ThorVGThreadCount = threads;
+}
+
+/**
+ * Gets the global thread count configured during init()
+ * @internal
+ */
+export function getGlobalThreadCount(): number {
+  return (globalThis as any).__ThorVGThreadCount ?? 0;
 }

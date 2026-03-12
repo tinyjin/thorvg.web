@@ -7,7 +7,7 @@
 #   ./wasm_wcanvas_build.sh <EMSDK_PATH>              # default (all engines, all loaders)
 #   ./wasm_wcanvas_build.sh <ENGINE> <EMSDK_PATH>     # engine-specific build
 #
-# ENGINE options: sw, gl, wg, sw-lite, gl-lite, wg-lite
+# ENGINE options: sw, gl, wg, sw-lite, gl-lite, wg-lite, pthread
 
 BACKEND="$1"
 EMSDK="$2"
@@ -19,7 +19,7 @@ fi
 
 if [ -z "$EMSDK" ]; then
   echo "Usage: $0 [ENGINE] <EMSDK_PATH>"
-  echo "ENGINE: sw, gl, wg, sw-lite, gl-lite, wg-lite (default: all)"
+  echo "ENGINE: sw, gl, wg, sw-lite, gl-lite, wg-lite, pthread (default: all)"
   exit 1
 fi
 
@@ -43,7 +43,7 @@ case "$BACKEND" in
   sw)
     CROSS_FILE="wasm32_sw.txt"
     ENGINES="sw"
-    LOADERS="lottie, jpg, png, webp, ttf"
+    LOADERS="lottie,jpg,png,webp,ttf"
     EXTRA="lottie_exp"
     SAVERS="all"
     CANVAS_FUNCTIONS="${SW_CANVAS_FUNCTIONS}"
@@ -51,7 +51,7 @@ case "$BACKEND" in
   gl)
     CROSS_FILE="wasm32_gl.txt"
     ENGINES="gl"
-    LOADERS="lottie, jpg, png, webp, ttf"
+    LOADERS="lottie,jpg,png,webp,ttf"
     EXTRA="lottie_exp"
     SAVERS="all"
     CANVAS_FUNCTIONS="${GL_CANVAS_FUNCTIONS}"
@@ -59,7 +59,7 @@ case "$BACKEND" in
   wg)
     CROSS_FILE="wasm32_wg.txt"
     ENGINES="wg"
-    LOADERS="lottie, jpg, png, webp, ttf"
+    LOADERS="lottie,jpg,png,webp,ttf"
     EXTRA="lottie_exp"
     SAVERS="all"
     CANVAS_FUNCTIONS="${WG_CANVAS_FUNCTIONS}"
@@ -67,7 +67,7 @@ case "$BACKEND" in
   sw-lite)
     CROSS_FILE="wasm32_sw.txt"
     ENGINES="sw"
-    LOADERS="lottie, png"
+    LOADERS="lottie,png"
     EXTRA=""
     SAVERS=""
     CANVAS_FUNCTIONS="${SW_CANVAS_FUNCTIONS}"
@@ -75,7 +75,7 @@ case "$BACKEND" in
   gl-lite)
     CROSS_FILE="wasm32_gl.txt"
     ENGINES="gl"
-    LOADERS="lottie, png"
+    LOADERS="lottie,png"
     EXTRA=""
     SAVERS=""
     CANVAS_FUNCTIONS="${GL_CANVAS_FUNCTIONS}"
@@ -83,10 +83,19 @@ case "$BACKEND" in
   wg-lite)
     CROSS_FILE="wasm32_wg.txt"
     ENGINES="wg"
-    LOADERS="lottie, png"
+    LOADERS="lottie,png"
     EXTRA=""
     SAVERS=""
     CANVAS_FUNCTIONS="${WG_CANVAS_FUNCTIONS}"
+    ;;
+  pthread)
+    CROSS_FILE="wasm32.txt"
+    ENGINES="all"
+    LOADERS="all"
+    EXTRA="lottie_exp"
+    SAVERS="all"
+    CANVAS_FUNCTIONS="${ALL_CANVAS_FUNCTIONS}"
+    PTHREAD="true"
     ;;
   all)
     CROSS_FILE="wasm32.txt"
@@ -98,7 +107,7 @@ case "$BACKEND" in
     ;;
   *)
     echo "Unknown engine: $BACKEND"
-    echo "Valid options: sw, gl, wg, sw-lite, gl-lite, wg-lite"
+    echo "Valid options: sw, gl, wg, sw-lite, gl-lite, wg-lite, pthread"
     exit 1
     ;;
 esac
@@ -114,6 +123,8 @@ rm -rf build_wasm_wcanvas
 # 2. Remove -fno-exceptions from cpp_args
 # 3. Remove --closure=1 and -sEXPORTED_RUNTIME_METHODS=FS from cpp_link_args
 # 4. Add WebCanvas specific flags
+# 5. For pthread: add -pthread compile/link flags, SharedArrayBuffer memory settings,
+#    and dynamic thread pool size via PTHREAD_POOL_SIZE
 if [ "$BACKEND" = "all" ]; then
   sed "s|EMSDK:|$EMSDK/|g" ../wasm/${CROSS_FILE} | \
     sed "s|, '-fno-exceptions'||g" | \
@@ -121,6 +132,14 @@ if [ "$BACKEND" = "all" ]; then
     sed "s|, '--closure=1'||g" | \
     sed "s|, '-sEXPORTED_RUNTIME_METHODS=FS'||g" | \
     sed "s|'--bind'|'--bind', '--emit-tsd=thorvg.d.ts', '-sEXPORTED_FUNCTIONS=${EXPORTED_FUNCTIONS}', '-sEXPORTED_RUNTIME_METHODS=${EXPORTED_RUNTIME_METHODS}', '-sDISABLE_EXCEPTION_CATCHING=0', '-sDISABLE_EXCEPTION_THROWING=0', '-sALLOW_TABLE_GROWTH=1', '-sINITIAL_TABLE=128'|g" > /tmp/.wasm_webcanvas_cross.txt
+elif [ "$PTHREAD" = "true" ]; then
+  sed "s|EMSDK:|$EMSDK/|g" ../wasm/${CROSS_FILE} | \
+    sed "s|, '-fno-exceptions'||g" | \
+    sed "s|'-fno-exceptions', ||g" | \
+    sed "s|, '--closure=1'||g" | \
+    sed "s|, '-sEXPORTED_RUNTIME_METHODS=FS'||g" | \
+    sed "s|cpp_args = \[|cpp_args = ['-pthread', |g" | \
+    sed "s|'--bind'|'--bind', '-pthread', '-sPTHREAD_POOL_SIZE=(typeof globalThis.__THORVG_THREAD_COUNT !== \"undefined\" ? globalThis.__THORVG_THREAD_COUNT : (typeof navigator !== \"undefined\" \&\& navigator.hardwareConcurrency ? navigator.hardwareConcurrency : 4))', '-sPTHREAD_POOL_SIZE_STRICT=0', '-sINITIAL_MEMORY=134217728', '-sALLOW_MEMORY_GROWTH=1', '-sEXPORTED_FUNCTIONS=${EXPORTED_FUNCTIONS}', '-sEXPORTED_RUNTIME_METHODS=${EXPORTED_RUNTIME_METHODS}', '-sDISABLE_EXCEPTION_CATCHING=0', '-sDISABLE_EXCEPTION_THROWING=0', '-sALLOW_TABLE_GROWTH=1', '-sINITIAL_TABLE=128'|g" > /tmp/.wasm_webcanvas_cross.txt
 else
   sed "s|EMSDK:|$EMSDK/|g" ../wasm/${CROSS_FILE} | \
     sed "s|, '-fno-exceptions'||g" | \
@@ -130,12 +149,15 @@ else
     sed "s|'--bind'|'--bind', '-sEXPORTED_FUNCTIONS=${EXPORTED_FUNCTIONS}', '-sEXPORTED_RUNTIME_METHODS=${EXPORTED_RUNTIME_METHODS}', '-sDISABLE_EXCEPTION_CATCHING=0', '-sDISABLE_EXCEPTION_THROWING=0', '-sALLOW_TABLE_GROWTH=1', '-sINITIAL_TABLE=128'|g" > /tmp/.wasm_webcanvas_cross.txt
 fi
 
+# Note: Always pass -Dthreads=false for Emscripten builds.
+# Emscripten handles pthread via the -pthread compiler/linker flag, not via a separate library.
+# ThorVG's meson.build does find_library('pthread') when threads=true, which fails on Emscripten.
+# For pthread builds, we inject THORVG_THREAD_SUPPORT into config.h after meson setup instead.
 MESON_ARGS="-Db_lto=true -Ddefault_library=static -Dstatic=true -Dthreads=false -Dfile=false -Dbindings=capi -Dpartial=true"
 MESON_ARGS="${MESON_ARGS} -Dengines=${ENGINES} -Dloaders=${LOADERS}"
 
-if [ -n "$EXTRA" ]; then
-  MESON_ARGS="${MESON_ARGS} -Dextra=${EXTRA}"
-fi
+# Always pass -Dextra to override default (which includes openmp, incompatible with Emscripten)
+MESON_ARGS="${MESON_ARGS} -Dextra=${EXTRA:-}"
 
 if [ -n "$SAVERS" ]; then
   MESON_ARGS="${MESON_ARGS} -Dsavers=${SAVERS}"
@@ -149,6 +171,14 @@ meson setup \
 if [ $? -ne 0 ]; then
   echo "ThorVG library meson setup failed!"
   exit 1
+fi
+
+# For pthread builds: inject THORVG_THREAD_SUPPORT into config.h
+# This enables ThorVG's TaskScheduler and thread-safe locks.
+# The actual pthread support comes from -pthread in cpp_args/cpp_link_args.
+if [ "$PTHREAD" = "true" ]; then
+  echo "" >> build_wasm_wcanvas/config.h
+  echo "#define THORVG_THREAD_SUPPORT 1" >> build_wasm_wcanvas/config.h
 fi
 
 ninja -C build_wasm_wcanvas/
