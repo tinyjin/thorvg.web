@@ -24,6 +24,7 @@ const PresetModule = {
   SW_LITE: "sw-lite",
   GL_LITE: "gl-lite",
   WG_LITE: "wg-lite",
+  PTHREAD: "pthread",
 };
 
 const presetMap = {
@@ -97,17 +98,32 @@ const presetMap = {
       esm: pkg.exports['./wg-lite'].import,
     }
   },
+  [PresetModule.PTHREAD]: {
+    path: '/dist/pthread',
+    renderer: null, // Runtime selection (all engines, like default)
+    input: "./src/index.ts",
+    output: {
+      // umd: './dist/pthread/webcanvas.js',
+      // cjs: pkg.exports['./pthread'].require,
+      esm: pkg.exports['./pthread'].import,
+    }
+  },
 };
 
 const createWebCanvasConfig = (preset) => {
   const config = presetMap[preset];
+  const isCustomPath = config.path !== '/dist';
   const replaceValues = {
     '__THORVG_VERSION__': process.env.THORVG_VERSION,
   };
 
-  // For preset builds, replace renderer placeholder and dist path
+  // For renderer-locked preset builds, replace renderer placeholder
   if (config.renderer) {
     replaceValues['__RENDERER__'] = config.renderer;
+  }
+
+  // For non-default presets, redirect dist path to preset-specific directory
+  if (isCustomPath) {
     replaceValues['/dist'] = config.path;
   }
 
@@ -124,21 +140,21 @@ const createWebCanvasConfig = (preset) => {
         format: "esm",
         ...commonOutput,
       },
-      {
-        file: config.output.cjs,
-        format: "cjs",
-        ...commonOutput,
-      },
-      {
-        file: config.output.umd,
-        format: "umd",
-        hoistTransitiveImports: true,
-        ...commonOutput,
-      },
+      // {
+      //   file: config.output.cjs,
+      //   format: "cjs",
+      //   ...commonOutput,
+      // },
+      // {
+      //   file: config.output.umd,
+      //   format: "umd",
+      //   hoistTransitiveImports: true,
+      //   ...commonOutput,
+      // },
     ],
     plugins: [
       // Alias thorvg module import to preset-specific directory
-      ...(config.renderer ? [
+      ...(isCustomPath ? [
         alias({
           entries: [
             { find: '../dist/thorvg', replacement: path.join('..', config.path, 'thorvg') },
@@ -196,6 +212,8 @@ export default [
   createWebCanvasConfig(PresetModule.SW_LITE),
   createWebCanvasConfig(PresetModule.GL_LITE),
   createWebCanvasConfig(PresetModule.WG_LITE),
+  // Pthread preset (all engines, thread support)
+  createWebCanvasConfig(PresetModule.PTHREAD),
   // Type definitions (single, shared across all presets)
   {
     input: "./src/index.ts",

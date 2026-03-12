@@ -30,7 +30,8 @@ export interface TvgCanvasConstructor {
     engineType: string,
     selector: string,
     width: number,
-    height: number
+    height: number,
+    threads: number
   ): TvgCanvasInstance;
 }
 

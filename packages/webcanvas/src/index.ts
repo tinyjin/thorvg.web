@@ -51,6 +51,7 @@ import { Font } from './core/Font';
 import { ThorVGResultCode, ThorVGError, setGlobalErrorHandler, handleError, type ErrorHandler } from './common/errors';
 import * as constants from './common/constants';
 import type { RendererType } from './common/constants';
+import { setGlobalThreadCount } from './interop/module';
 import ThorVGModuleFactory from '../dist/thorvg';
 
 const THORVG_VERSION = '__THORVG_VERSION__';
@@ -66,6 +67,30 @@ export interface InitOptions<R extends RendererType = RendererType> {
   renderer?: R;
   /** Global error handler for all ThorVG operations. If provided, errors will be passed to this handler instead of being thrown. */
   onError?: ErrorHandler;
+  /**
+   * Number of worker threads for parallel rendering.
+   * Only effective when using the pthread preset (`@thorvg/webcanvas/pthread`).
+   *
+   * @defaultValue 0 (single-threaded)
+   *
+   * @remarks
+   * - Requires the pthread preset WASM binary compiled with thread support
+   * - Requires SharedArrayBuffer support (COOP/COEP headers must be set on the server)
+   * - Higher values increase memory usage but improve rendering performance for complex scenes
+   * - Recommended: `navigator.hardwareConcurrency` or a fraction of available cores
+   *
+   * @example
+   * ```typescript
+   * import ThorVG from '@thorvg/webcanvas/pthread';
+   *
+   * // Use all available cores
+   * await ThorVG.init({ renderer: 'gl', threadCount: navigator.hardwareConcurrency });
+   *
+   * // Use half of available cores
+   * await ThorVG.init({ threadCount: Math.floor(navigator.hardwareConcurrency / 2) });
+   * ```
+   */
+  threadCount?: number;
 }
 
 export interface ThorVGNamespace<R extends RendererType = RendererType> {
@@ -192,10 +217,17 @@ async function init<R extends RendererType = 'gl'>(
     return createNamespace(initializedRenderer);
   }
 
-  const { locateFile, renderer = 'gl', onError } = options;
+  const { locateFile, renderer = 'gl', onError, threadCount = 0 } = options;
 
   // Set the global error handler for checkResult
   setGlobalErrorHandler(onError);
+
+  // Store thread count for Canvas instances
+  setGlobalThreadCount(threadCount);
+
+  // Set global thread count BEFORE loading WASM module
+  // This is read by Emscripten's PTHREAD_POOL_SIZE at module initialization (pthread preset only)
+  (globalThis as any).__THORVG_THREAD_COUNT = threadCount;
 
   // Load WASM module
   Module = await ThorVGModuleFactory({
@@ -225,14 +257,17 @@ function term(): void {
   // Terminate ThorVG engine
   Module.term();
 
-  // Clear global reference
+  // Clear global references
   if ((globalThis as any).__ThorVGModule) {
     delete (globalThis as any).__ThorVGModule;
   }
+  delete (globalThis as any).__THORVG_THREAD_COUNT;
+  delete (globalThis as any).__ThorVGThreadCount;
 
   // Reset state
   Module = null;
   initializedRenderer = null;
+  setGlobalThreadCount(0);
 }
 
 /**

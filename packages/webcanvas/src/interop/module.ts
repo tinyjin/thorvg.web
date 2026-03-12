@@ -24,3 +24,19 @@ export function getModule(): ThorVGModule {
 export function hasModule(): boolean {
   return !!(globalThis as any).__ThorVGModule;
 }
+
+/**
+ * Sets the global thread count for Canvas instances
+ * @internal
+ */
+export function setGlobalThreadCount(threads: number): void {
+  (globalThis as any).__ThorVGThreadCount = threads;
+}
+
+/**
+ * Gets the global thread count configured during init()
+ * @internal
+ */
+export function getGlobalThreadCount(): number {
+  return (globalThis as any).__ThorVGThreadCount ?? 0;
+}

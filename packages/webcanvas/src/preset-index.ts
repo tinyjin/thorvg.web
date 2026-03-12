@@ -22,6 +22,7 @@ import { Font } from './core/Font';
 import { ThorVGResultCode, ThorVGError, setGlobalErrorHandler, handleError, type ErrorHandler } from './common/errors';
 import * as constants from './common/constants';
 import type { RendererType } from './common/constants';
+import { setGlobalThreadCount } from './interop/module';
 import ThorVGModuleFactory from '../dist/thorvg'; // Aliased per-preset by Rollup
 
 const THORVG_VERSION = '__THORVG_VERSION__';
@@ -38,6 +39,19 @@ export interface PresetInitOptions {
   locateFile?: (path: string) => string;
   /** Global error handler for all ThorVG operations. If provided, errors will be passed to this handler instead of being thrown. */
   onError?: ErrorHandler;
+  /**
+   * Number of worker threads for parallel rendering.
+   * Only effective when using the pthread preset (`@thorvg/webcanvas/pthread`).
+   *
+   * @defaultValue 0 (single-threaded)
+   *
+   * @remarks
+   * - Requires the pthread preset WASM binary compiled with thread support
+   * - Requires SharedArrayBuffer support (COOP/COEP headers must be set on the server)
+   * - Higher values increase memory usage but improve rendering performance for complex scenes
+   * - Recommended: `navigator.hardwareConcurrency` or a fraction of available cores
+   */
+  threadCount?: number;
 }
 
 type PresetCanvasType =
@@ -141,10 +155,17 @@ async function init(
     return createNamespace();
   }
 
-  const { locateFile, onError } = options;
+  const { locateFile, onError, threadCount = 0 } = options;
 
   // Set the global error handler
   setGlobalErrorHandler(onError);
+
+  // Store thread count for Canvas instances
+  setGlobalThreadCount(threadCount);
+
+  // Set global thread count BEFORE loading WASM module
+  // This is read by Emscripten's PTHREAD_POOL_SIZE at module initialization (pthread preset only)
+  (globalThis as any).__THORVG_THREAD_COUNT = threadCount;
 
   // Load WASM module
   Module = await ThorVGModuleFactory({
@@ -173,12 +194,16 @@ function term(): void {
 
   Module.term();
 
+  // Clear global references
   if ((globalThis as any).__ThorVGModule) {
     delete (globalThis as any).__ThorVGModule;
   }
+  delete (globalThis as any).__THORVG_THREAD_COUNT;
+  delete (globalThis as any).__ThorVGThreadCount;
 
   Module = null;
   initialized = false;
+  setGlobalThreadCount(0);
 }
 
 /**

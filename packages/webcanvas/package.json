@@ -40,6 +40,11 @@
       "types": "./dist/webcanvas.d.ts",
       "import": "./dist/wg-lite/webcanvas.esm.js",
       "require": "./dist/wg-lite/webcanvas.cjs.js"
+    },
+    "./pthread": {
+      "types": "./dist/webcanvas.d.ts",
+      "import": "./dist/pthread/webcanvas.esm.js",
+      "require": "./dist/pthread/webcanvas.cjs.js"
     }
   },
   "publishConfig": {
