@@ -53,7 +53,13 @@
   "files": [
     "dist/",
     "!dist/thorvg.d.ts",
-    "!dist/**/thorvg.js"
+    "!dist/thorvg.js",
+    "!dist/sw/thorvg.js",
+    "!dist/gl/thorvg.js",
+    "!dist/wg/thorvg.js",
+    "!dist/sw-lite/thorvg.js",
+    "!dist/gl-lite/thorvg.js",
+    "!dist/wg-lite/thorvg.js"
   ],
   "scripts": {
     "build": "npm run clean && sh ./wasm_wcanvas_setup.sh && THORVG_VERSION=$(npm run version --silent) rollup -c --bundleConfigAsCjs",
