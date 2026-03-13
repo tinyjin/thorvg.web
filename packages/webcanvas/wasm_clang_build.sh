@@ -153,9 +153,11 @@ EXPORTS=(
   memory
 )
 
-EXPORT_FLAGS=""
+# Write export flags to response file (avoids argument length issues)
+EXPORT_FILE="$BUILD_DIR/exports.txt"
+: > "$EXPORT_FILE"
 for sym in "${EXPORTS[@]}"; do
-  EXPORT_FLAGS="$EXPORT_FLAGS --export=$sym"
+  echo "--export=$sym" >> "$EXPORT_FILE"
 done
 
 $WASM_LD \
@@ -164,7 +166,7 @@ $WASM_LD \
   --gc-sections \
   --strip-all \
   --allow-undefined \
-  $EXPORT_FLAGS \
+  @"$EXPORT_FILE" \
   -o "$BUILD_DIR/thorvg.wasm" \
   "$BUILD_DIR/bindings.o" \
   "$THORVG_LIB" \
