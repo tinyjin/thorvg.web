@@ -25,15 +25,10 @@ CFLAGS="$CFLAGS -I${MUSL}/arch/emscripten -I${MUSL}/arch/generic"
 echo "=== Building minimal wasm32 sysroot ==="
 
 rm -rf "$BUILD"
-mkdir -p "$BUILD"/{string,math,ctype,runtime,dlmalloc,cxx}
+mkdir -p "$BUILD"/{string,math,ctype}
 mkdir -p "$LIB"
 
-# 1. Runtime (sbrk, abort)
-echo "Building runtime..."
-$CC $CFLAGS -c "$SRC/runtime/sbrk.c" -o "$BUILD/runtime/sbrk.o"
-$CC $CFLAGS -c "$SRC/runtime/abort.c" -o "$BUILD/runtime/abort.o"
-
-# 2. String functions from musl
+# 1. String functions from musl
 echo "Building string functions..."
 STRING_FUNCS="memcpy memset memmove memcmp memchr strlen strcmp strncmp strcpy strncpy strcat strncat strchr strrchr strstr stpcpy stpncpy strtok_r"
 STRING_OK=0
@@ -67,46 +62,34 @@ for f in "$MUSL/src/math/"*.c; do
 done
 echo "  $MATH_OK math functions compiled, $MATH_FAIL skipped"
 
-# 5. Additional musl functions needed
+# 5. Additional musl functions (from build_extra.sh findings)
 echo "Building additional libc functions..."
-# strtod/strtof/strtol etc for number parsing
-EXTRA_FUNCS=""
-for dir in stdlib errno; do
-  for f in "$MUSL/src/$dir/"*.c; do
-    name=$(basename "$f" .c)
-    $CC $CFLAGS -c "$f" -o "$BUILD/string/${dir}_${name}.o" 2>/dev/null && EXTRA_FUNCS="$EXTRA_FUNCS $name"
-  done
+EXTRA_OK=0
+for path in \
+  string/strdup string/strcspn string/strspn \
+  string/strcasecmp string/strncasecmp \
+  ctype/isxdigit \
+  prng/rand prng/__rand48_step prng/__seed48 \
+  stdio/snprintf \
+  ; do
+  name=$(basename "$path")
+  src="$MUSL/src/$path.c"
+  if [ -f "$src" ]; then
+    "$CC" $CFLAGS -c "$src" -o "$BUILD/string/extra_$name.o" 2>/dev/null && EXTRA_OK=$((EXTRA_OK+1))
+  fi
 done
-echo "  Extra: $EXTRA_FUNCS"
+# Also stdlib functions
+for f in "$MUSL/src/stdlib/"*.c "$MUSL/src/errno/"*.c; do
+  name=$(basename "$f" .c)
+  $CC $CFLAGS -c "$f" -o "$BUILD/string/extra_${name}.o" 2>/dev/null && EXTRA_OK=$((EXTRA_OK+1))
+done
+echo "  $EXTRA_OK extra functions compiled"
 
-# 6. dlmalloc with custom sbrk
-echo "Building dlmalloc..."
-$CC $CFLAGS \
-  -DMALLOC_FAILURE_ACTION= \
-  -DABORT_ON_ASSERT_FAILURE=0 \
-  -DLACKS_SYS_MMAN_H=1 \
-  -DLACKS_UNISTD_H=1 \
-  -DLACKS_SYS_PARAM_H=1 \
-  -DLACKS_FCNTL_H=1 \
-  -DHAVE_MORECORE=1 \
-  -DMORECORE=sbrk \
-  -DMORECORE_CANNOT_TRIM=1 \
-  -DHAVE_MMAP=0 \
-  '-Dgetpagesize()=65536' \
-  -c "$SRC/dlmalloc/dlmalloc.c" -o "$BUILD/dlmalloc/dlmalloc.o"
-
-# 7. C++ minimal (operator new/delete)
-echo "Building C++ minimal..."
-$CXX --sysroot="$EMSDK_SYSROOT" -Oz -flto -fno-exceptions -std=c++17 \
-  -c "$SRC/cxx/new.cpp" -o "$BUILD/cxx/new.o"
-
-# Create archives
+# Create archives (only libc.a and libm.a - dlmalloc/libc++/compiler-rt from emsdk)
 echo ""
 echo "Creating archives..."
-$AR rcs "$LIB/libc.a" "$BUILD"/string/*.o "$BUILD"/ctype/*.o "$BUILD"/runtime/*.o
+$AR rcs "$LIB/libc.a" "$BUILD"/string/*.o "$BUILD"/ctype/*.o
 $AR rcs "$LIB/libm.a" "$BUILD"/math/*.o
-$AR rcs "$LIB/libdlmalloc.a" "$BUILD"/dlmalloc/dlmalloc.o
-$AR rcs "$LIB/libcxx_minimal.a" "$BUILD"/cxx/new.o
 
 echo ""
 echo "=== Sysroot built ==="

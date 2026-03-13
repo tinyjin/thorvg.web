@@ -12,6 +12,7 @@
 --export=tvg_wcanvas_height
 --export=malloc
 --export=free
+--export=memory
 --export=tvg_engine_init
 --export=tvg_engine_term
 --export=tvg_swcanvas_create
@@ -132,4 +133,3 @@
 --export=tvg_accessor_new
 --export=tvg_accessor_del
 --export=tvg_accessor_set
---export=memory

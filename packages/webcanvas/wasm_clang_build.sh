@@ -1,12 +1,16 @@
 #!/bin/bash
 
 # Pure Clang WASM32 Build Script for WebCanvas (SW renderer only)
-# No Emscripten runtime - uses clang directly with emsdk sysroot for libc/libc++
+#
+# Builds ThorVG wasm without Emscripten compiler (emcc).
+# Uses emsdk's LLVM toolchain (clang/wasm-ld) directly + emsdk sysroot headers.
+# Custom libc.a/libm.a from musl source for string/math/ctype.
+# Emscripten's dlmalloc/libc++/compiler-rt for memory allocation and C++ runtime.
+# Result: ~605KB wasm + ~2KB JS loader (vs Emscripten's 614KB + 107KB JS glue)
 
 set -e
 
 EMSDK_ROOT="${EMSDK:-/Users/jinny/Dev/emsdk}"
-CLANG="$EMSDK_ROOT/upstream/bin/clang++"
 WASM_LD="$EMSDK_ROOT/upstream/bin/wasm-ld"
 LLVM_AR="$EMSDK_ROOT/upstream/bin/llvm-ar"
 WASM_OPT="${WASM_OPT:-/Users/jinny/Dev/binaryen/bin/wasm-opt}"
@@ -18,24 +22,31 @@ PROJECT_ROOT="$SCRIPT_DIR/../.."
 THORVG_DIR="$PROJECT_ROOT/thorvg"
 WASM_DIR="$PROJECT_ROOT/wasm"
 BUILD_DIR="$SCRIPT_DIR/build_wasm_clang"
+CUSTOM_LIB="$WASM_DIR/sysroot/lib/wasm32"
 
 echo "=== Pure Clang WASM32 Build (SW only) ==="
-echo "Clang: $CLANG"
-echo "Sysroot: $SYSROOT"
 
 # Verify tools
-if [ ! -f "$CLANG" ]; then
-  echo "Error: clang++ not found at $CLANG"
-  exit 1
+for tool in "$WASM_LD" "$LLVM_AR" "$WASM_DIR/clang_wasm32_wrapper.sh"; do
+  if [ ! -f "$tool" ]; then
+    echo "Error: $(basename $tool) not found at $tool"
+    exit 1
+  fi
+done
+
+# Step 0: Build custom sysroot (libc.a, libm.a) if needed
+if [ ! -f "$CUSTOM_LIB/libc.a" ] || [ ! -f "$CUSTOM_LIB/libm.a" ]; then
+  echo ""
+  echo "=== Step 0: Building custom sysroot ==="
+  bash "$WASM_DIR/sysroot/build.sh"
 fi
 
-# Step 1: Build ThorVG core library with meson
+# Step 1: Build ThorVG core library
 echo ""
 echo "=== Step 1: Building ThorVG core (SW only) ==="
 cd "$THORVG_DIR"
 rm -rf build_wasm_clang
 
-# Use the clang cross-file
 meson setup \
   -Db_lto=true \
   -Ddefault_library=static \
@@ -58,7 +69,6 @@ if [ ! -f "$THORVG_LIB" ]; then
   echo "Error: libthorvg-1.a not found"
   exit 1
 fi
-echo "ThorVG library: $(ls -lh "$THORVG_LIB" | awk '{print $5}')"
 
 # Step 2: Compile bindings
 echo ""
@@ -67,10 +77,10 @@ cd "$SCRIPT_DIR"
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 
-# Copy config header
 cp "$THORVG_DIR/build_wasm_clang/config.h" "$WASM_DIR/webcanvas/config.h"
 
 "$WASM_DIR/clang_wasm32_wrapper.sh" \
+  -I"$WASM_DIR/sysroot/include" \
   --sysroot="$SYSROOT" \
   -std=c++17 -Oz -flto -fno-exceptions \
   -fvisibility=default \
@@ -84,21 +94,20 @@ cp "$THORVG_DIR/build_wasm_clang/config.h" "$WASM_DIR/webcanvas/config.h"
   -c "$WASM_DIR/webcanvas/tvgWasmWebCanvasClang.cpp" \
   -o "$BUILD_DIR/bindings.o"
 
-echo "Bindings compiled: $(ls -lh "$BUILD_DIR/bindings.o" | awk '{print $5}')"
+rm "$WASM_DIR/webcanvas/config.h"
 
-# Step 3: Link final wasm
+# Step 3: Link
 echo ""
-echo "=== Step 3: Linking final WASM ==="
+echo "=== Step 3: Linking ==="
 
-# Exported C API functions (matching Emscripten build's EXPORTED_FUNCTIONS)
 EXPORTS=(
-  # WebCanvas bindings
+  # WebCanvas
   tvg_wcanvas_init tvg_wcanvas_term tvg_wcanvas_create tvg_wcanvas_destroy
   tvg_wcanvas_resize tvg_wcanvas_render tvg_wcanvas_render_size
   tvg_wcanvas_ptr tvg_wcanvas_error tvg_wcanvas_clear
   tvg_wcanvas_width tvg_wcanvas_height
   # Memory
-  malloc free
+  malloc free memory
   # Engine
   tvg_engine_init tvg_engine_term
   # Canvas
@@ -149,11 +158,8 @@ EXPORTS=(
   tvg_font_load tvg_font_load_data tvg_font_unload
   # Accessor
   tvg_accessor_new tvg_accessor_del tvg_accessor_set
-  # Memory export
-  memory
 )
 
-# Write export flags to response file (avoids argument length issues)
 EXPORT_FILE="$BUILD_DIR/exports.txt"
 : > "$EXPORT_FILE"
 for sym in "${EXPORTS[@]}"; do
@@ -170,17 +176,18 @@ $WASM_LD \
   -o "$BUILD_DIR/thorvg.wasm" \
   "$BUILD_DIR/bindings.o" \
   "$THORVG_LIB" \
-  "$SYSLIB/libc.a" \
+  "$CUSTOM_LIB/libc.a" \
+  "$CUSTOM_LIB/libm.a" \
+  "$SYSLIB/libdlmalloc.a" \
   "$SYSLIB/libc++-noexcept.a" \
   "$SYSLIB/libc++abi-noexcept.a" \
-  "$SYSLIB/libdlmalloc.a" \
   "$SYSLIB/libcompiler_rt.a"
 
-echo "Linked WASM: $(ls -lh "$BUILD_DIR/thorvg.wasm" | awk '{print $5}')"
+echo "Linked: $(ls -lh "$BUILD_DIR/thorvg.wasm" | awk '{print $5}')"
 
-# Step 4: Optimize with wasm-opt
+# Step 4: Optimize
 echo ""
-echo "=== Step 4: Optimizing with wasm-opt ==="
+echo "=== Step 4: Optimizing ==="
 if [ -f "$WASM_OPT" ]; then
   $WASM_OPT -Oz -all --converge \
     --dce --remove-unused-module-elements --remove-unused-names \
@@ -189,21 +196,12 @@ if [ -f "$WASM_OPT" ]; then
     --reorder-functions --reorder-locals \
     -o "$BUILD_DIR/thorvg_opt.wasm" \
     "$BUILD_DIR/thorvg.wasm"
-  echo "Optimized WASM: $(ls -lh "$BUILD_DIR/thorvg_opt.wasm" | awk '{print $5}')"
 else
-  echo "Warning: wasm-opt not found, skipping optimization"
   cp "$BUILD_DIR/thorvg.wasm" "$BUILD_DIR/thorvg_opt.wasm"
 fi
 
-# Cleanup
-rm "$WASM_DIR/webcanvas/config.h"
-
-# Summary
 echo ""
-echo "=== Build Summary ==="
-echo "Output: $BUILD_DIR/thorvg_opt.wasm"
-ls -lh "$BUILD_DIR/thorvg.wasm" "$BUILD_DIR/thorvg_opt.wasm"
-echo ""
-echo "Emscripten SW build for comparison:"
-ls -lh "$SCRIPT_DIR/dist/sw/thorvg.wasm" 2>/dev/null || echo "(not available)"
-ls -lh "$SCRIPT_DIR/dist/sw-lite/thorvg.wasm" 2>/dev/null || echo "(not available)"
+echo "============================================="
+echo "  Output: $BUILD_DIR/thorvg_opt.wasm"
+echo "  Size:   $(ls -lh "$BUILD_DIR/thorvg_opt.wasm" | awk '{print $5}')"
+echo "============================================="

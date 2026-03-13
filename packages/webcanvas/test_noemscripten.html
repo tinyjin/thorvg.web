@@ -1,19 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>ThorVG Custom Sysroot WASM Test</title>
+  <title>ThorVG Pure Clang WASM Test</title>
   <style>
     body { font-family: monospace; background: #1a1a2e; color: #e0e0e0; padding: 20px; }
     canvas { border: 1px solid #444; background: #000; display: block; margin: 10px 0; }
     .info { margin: 10px 0; padding: 10px; background: #16213e; border-radius: 4px; max-height: 300px; overflow-y: auto; }
     .ok { color: #4ecca3; }
     .err { color: #e23e57; }
-    .warn { color: #f0c040; }
     h1 { color: #4ecca3; font-size: 18px; }
   </style>
 </head>
 <body>
-  <h1>ThorVG - Custom Sysroot WASM32 (603KB, SW Renderer)</h1>
+  <h1>ThorVG - Pure Clang WASM32 (~605KB, SW)</h1>
   <div class="info" id="log">Loading...</div>
   <canvas id="canvas" width="400" height="400"></canvas>
 
@@ -30,17 +29,19 @@ async function main() {
   }
 
   try {
-    addLog('Loading thorvg_custom_opt.wasm...');
+    addLog('Loading thorvg_opt.wasm...');
     const t0 = performance.now();
-    const response = await fetch('build_wasm_clang/thorvg_custom_opt.wasm');
+    const response = await fetch('build_wasm_clang/thorvg_opt.wasm');
     const bytes = await response.arrayBuffer();
     addLog(`WASM loaded: ${(bytes.byteLength / 1024).toFixed(1)}KB in ${(performance.now()-t0).toFixed(0)}ms`);
 
     let instance;
     const imports = {
       env: {
+        // JerryScript (Lottie expressions)
         setjmp: () => 0,
         longjmp: () => { console.error('longjmp called'); },
+        // dlmalloc memory growth
         emscripten_resize_heap: (requestedSize) => {
           const mem = instance.exports.memory;
           const cur = mem.buffer.byteLength;
@@ -49,9 +50,14 @@ async function main() {
           catch(e) { return 0; }
         },
         _abort_js: () => { throw new Error('abort'); },
+        // C++ runtime stubs
         __cxa_atexit: () => 0,
         __errno_location: () => 0,
+        // Missing libc stubs
         strtol: () => 0,
+        vsnprintf: () => 0,
+        vfprintf: () => 0,
+        fputc: () => 0,
         __strchrnul: (s, c) => {
           const mem = new Uint8Array(instance.exports.memory.buffer);
           let i = s;
@@ -65,9 +71,6 @@ async function main() {
           }
           return 0;
         },
-        vsnprintf: () => 0,
-        vfprintf: () => 0,
-        fputc: () => 0,
       },
       wasi_snapshot_preview1: {
         fd_write: () => 0,
@@ -99,6 +102,7 @@ async function main() {
     if (!canvasPtr) { addLog('Canvas pointer is null', 'err'); return; }
 
     addLog('Drawing shapes...');
+
     const s1 = wasm.tvg_shape_new();
     wasm.tvg_shape_append_rect(s1, 50, 50, 200, 150, 10, 10, 1);
     wasm.tvg_shape_set_fill_color(s1, 230, 57, 70, 255);
