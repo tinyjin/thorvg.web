@@ -182,7 +182,11 @@ echo "Linked WASM: $(ls -lh "$BUILD_DIR/thorvg.wasm" | awk '{print $5}')"
 echo ""
 echo "=== Step 4: Optimizing with wasm-opt ==="
 if [ -f "$WASM_OPT" ]; then
-  $WASM_OPT -Oz -all \
+  $WASM_OPT -Oz -all --converge \
+    --dce --remove-unused-module-elements --remove-unused-names \
+    --strip-debug --strip-producers \
+    --merge-similar-functions --coalesce-locals \
+    --reorder-functions --reorder-locals \
     -o "$BUILD_DIR/thorvg_opt.wasm" \
     "$BUILD_DIR/thorvg.wasm"
   echo "Optimized WASM: $(ls -lh "$BUILD_DIR/thorvg_opt.wasm" | awk '{print $5}')"
