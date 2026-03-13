@@ -8,7 +8,7 @@ root = '/Users/jinny/Dev/emsdk/upstream/emscripten/cache/sysroot'
 
 [built-in options]
 cpp_std = 'c++17'
-cpp_args = ['--sysroot=/Users/jinny/Dev/emsdk/upstream/emscripten/cache/sysroot', '-fvisibility=default', '-flto', '-Oz', '-fno-exceptions', '-DNDEBUG']
+cpp_args = ['-I/Users/jinny/Work/LottieFiles/thorvg.web/wasm/sysroot/include', '--sysroot=/Users/jinny/Dev/emsdk/upstream/emscripten/cache/sysroot', '-fvisibility=default', '-flto', '-Oz', '-fno-exceptions', '-DNDEBUG']
 cpp_link_args = ['-flto', '-Oz', '-nostdlib', '-Wl,--no-entry', '-Wl,--export-dynamic', '-Wl,--allow-undefined', '-Wl,--lto-O3']
 
 [host_machine]
