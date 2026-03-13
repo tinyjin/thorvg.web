@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ThorVG Custom Sysroot WASM Test</title>
+  <style>
+    body { font-family: monospace; background: #1a1a2e; color: #e0e0e0; padding: 20px; }
+    canvas { border: 1px solid #444; background: #000; display: block; margin: 10px 0; }
+    .info { margin: 10px 0; padding: 10px; background: #16213e; border-radius: 4px; max-height: 300px; overflow-y: auto; }
+    .ok { color: #4ecca3; }
+    .err { color: #e23e57; }
+    .warn { color: #f0c040; }
+    h1 { color: #4ecca3; font-size: 18px; }
+  </style>
+</head>
+<body>
+  <h1>ThorVG - Custom Sysroot WASM32 (SW Renderer)</h1>
+  <div class="info" id="log">Loading...</div>
+  <canvas id="canvas" width="400" height="400"></canvas>
+
+<script>
+async function main() {
+  const log = document.getElementById('log');
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  function addLog(msg, type = 'ok') {
+    log.innerHTML += `<div class="${type}">${msg}</div>`;
+    log.scrollTop = log.scrollHeight;
+  }
+
+  try {
+    addLog('Loading thorvg_custom_opt.wasm...');
+    const t0 = performance.now();
+    const response = await fetch('build_wasm_clang/thorvg_custom_opt.wasm');
+    const bytes = await response.arrayBuffer();
+    addLog(`WASM loaded: ${(bytes.byteLength / 1024).toFixed(1)}KB in ${(performance.now()-t0).toFixed(0)}ms`);
+
+    let instance;
+    const imports = {
+      env: {
+        // JerryScript (Lottie expressions)
+        setjmp: () => 0,
+        longjmp: () => { console.error('longjmp called'); },
+
+        // Memory growth for dlmalloc
+        emscripten_resize_heap: (requestedSize) => {
+          const mem = instance.exports.memory;
+          const currentBytes = mem.buffer.byteLength;
+          if (requestedSize <= currentBytes) return 1;
+          const pages = Math.ceil((requestedSize - currentBytes) / 65536);
+          try { mem.grow(pages); return 1; }
+          catch(e) { return 0; }
+        },
+        _abort_js: () => { throw new Error('abort'); },
+
+        // C runtime stubs
+        __cxa_atexit: () => 0,
+        __errno_location: () => 0,
+
+        // Missing libc (not in our custom libc.a, needed by libc++)
+        strtol: () => 0,
+        __strchrnul: (s, c) => {
+          const mem = new Uint8Array(instance.exports.memory.buffer);
+          let i = s;
+          while (mem[i] !== 0 && mem[i] !== (c & 0xff)) i++;
+          return i;
+        },
+        __memrchr: (s, c, n) => {
+          const mem = new Uint8Array(instance.exports.memory.buffer);
+          for (let i = s + n - 1; i >= s; i--) {
+            if (mem[i] === (c & 0xff)) return i;
+          }
+          return 0;
+        },
+        vsnprintf: () => 0,
+        vfprintf: () => 0,
+        fputc: () => 0,
+
+        // WASI stubs (from musl in Emscripten's libc)
+        fd_write: () => 0,
+        fd_close: () => 0,
+        fd_seek: () => 0,
+      },
+      wasi_snapshot_preview1: {
+        fd_write: () => 0,
+        fd_close: () => 0,
+        fd_seek: () => 0,
+      },
+    };
+
+    const t1 = performance.now();
+    const result = await WebAssembly.instantiate(bytes, imports);
+    instance = result.instance;
+    const wasm = instance.exports;
+    const memory = wasm.memory;
+    addLog(`Instantiated in ${(performance.now()-t1).toFixed(0)}ms. Exports: ${Object.keys(wasm).length}`);
+
+    // Create SW canvas
+    addLog('Creating SW canvas...');
+    const tvgCtx = wasm.tvg_wcanvas_create(W, H);
+    if (!tvgCtx) { addLog('tvg_wcanvas_create returned null!', 'err'); return; }
+
+    const errPtr = wasm.tvg_wcanvas_error(tvgCtx);
+    let errStr = '';
+    if (errPtr) {
+      const v = new Uint8Array(memory.buffer, errPtr, 256);
+      for (let i = 0; i < 256 && v[i]; i++) errStr += String.fromCharCode(v[i]);
+    }
+    addLog(`Canvas state: "${errStr}"`);
+
+    const canvasPtr = wasm.tvg_wcanvas_ptr(tvgCtx);
+    if (!canvasPtr) { addLog('Canvas pointer is null', 'err'); return; }
+
+    // Draw shapes
+    addLog('Drawing shapes...');
+    const shape1 = wasm.tvg_shape_new();
+    wasm.tvg_shape_append_rect(shape1, 50, 50, 200, 150, 10, 10, 1);
+    wasm.tvg_shape_set_fill_color(shape1, 230, 57, 70, 255);
+    wasm.tvg_canvas_add(canvasPtr, shape1);
+
+    const shape2 = wasm.tvg_shape_new();
+    wasm.tvg_shape_append_circle(shape2, 280, 280, 80, 80, 1);
+    wasm.tvg_shape_set_fill_color(shape2, 69, 123, 157, 255);
+    wasm.tvg_canvas_add(canvasPtr, shape2);
+
+    const shape3 = wasm.tvg_shape_new();
+    wasm.tvg_shape_move_to(shape3, 200, 50);
+    wasm.tvg_shape_line_to(shape3, 350, 200);
+    wasm.tvg_shape_line_to(shape3, 50, 200);
+    wasm.tvg_shape_close(shape3);
+    wasm.tvg_shape_set_fill_color(shape3, 76, 201, 160, 200);
+    wasm.tvg_shape_set_stroke_width(shape3, 3);
+    wasm.tvg_shape_set_stroke_color(shape3, 255, 255, 255, 255);
+    wasm.tvg_canvas_add(canvasPtr, shape3);
+
+    const t2 = performance.now();
+    wasm.tvg_canvas_update(canvasPtr);
+    wasm.tvg_canvas_draw(canvasPtr, 0);
+    wasm.tvg_canvas_sync(canvasPtr);
+    addLog(`Render took ${(performance.now()-t2).toFixed(1)}ms`);
+
+    const bufPtr = wasm.tvg_wcanvas_render(tvgCtx);
+    const bufSize = wasm.tvg_wcanvas_render_size(tvgCtx);
+    addLog(`Buffer: ptr=0x${bufPtr.toString(16)}, size=${bufSize}`);
+
+    if (bufPtr && bufSize > 0) {
+      const pixels = new Uint8ClampedArray(memory.buffer, bufPtr, bufSize);
+      const imageData = new ImageData(pixels, W, H);
+      ctx.putImageData(imageData, 0, 0);
+      addLog('Rendered to canvas!');
+    } else {
+      addLog('No render output', 'err');
+    }
+
+    addLog(`Total: ${(performance.now()-t0).toFixed(0)}ms — Custom sysroot build works! (603KB vs 624KB)`);
+
+  } catch (e) {
+    addLog(`Error: ${e.message}`, 'err');
+    console.error(e);
+  }
+}
+
+main();
+</script>
+</body>
+</html>
