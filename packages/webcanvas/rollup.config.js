@@ -135,22 +135,25 @@ const createWebCanvasConfig = (preset) => {
       tryCatchDeoptimization: false
     },
     output: [
+      config.output.esm ?
       {
         file: config.output.esm,
         format: "esm",
         ...commonOutput,
-      },
-      // {
-      //   file: config.output.cjs,
-      //   format: "cjs",
-      //   ...commonOutput,
-      // },
-      // {
-      //   file: config.output.umd,
-      //   format: "umd",
-      //   hoistTransitiveImports: true,
-      //   ...commonOutput,
-      // },
+      } : null,
+      config.output.cjs ?
+      {
+        file: config.output.cjs,
+        format: "cjs",
+        ...commonOutput,
+      } : null,
+      config.output.umd ?
+      {
+        file: config.output.umd,
+        format: "umd",
+        hoistTransitiveImports: true,
+        ...commonOutput,
+      } : null,
     ],
     plugins: [
       // Alias thorvg module import to preset-specific directory
