@@ -1,0 +1,18 @@
+[binaries]
+cpp = '/Users/jinny/Work/LottieFiles/thorvg.web/wasm/clang_wasm32_wrapper.sh'
+ar = '/Users/jinny/Dev/emsdk/upstream/bin/llvm-ar'
+strip = '/Users/jinny/Dev/emsdk/upstream/bin/llvm-strip'
+
+[properties]
+root = '/Users/jinny/Dev/emsdk/upstream/emscripten/cache/sysroot'
+
+[built-in options]
+cpp_std = 'c++17'
+cpp_args = ['--sysroot=/Users/jinny/Dev/emsdk/upstream/emscripten/cache/sysroot', '-fvisibility=default', '-flto', '-Oz', '-fno-exceptions', '-DNDEBUG']
+cpp_link_args = ['-flto', '-Oz', '-nostdlib', '-Wl,--no-entry', '-Wl,--export-dynamic', '-Wl,--allow-undefined', '-Wl,--lto-O3']
+
+[host_machine]
+system = 'emscripten'
+cpu_family = 'wasm32'
+cpu = 'wasm32'
+endian = 'little'
