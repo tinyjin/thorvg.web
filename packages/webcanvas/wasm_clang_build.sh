@@ -190,6 +190,7 @@ echo ""
 echo "=== Step 4: Optimizing ==="
 if [ -f "$WASM_OPT" ]; then
   $WASM_OPT -Oz -all --converge \
+    --optimize-instructions \
     --dce --remove-unused-module-elements --remove-unused-names \
     --strip-debug --strip-producers \
     --merge-similar-functions --coalesce-locals \
