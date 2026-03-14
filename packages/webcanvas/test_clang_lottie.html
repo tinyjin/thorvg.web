@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ThorVG Clang WASM - Lottie Animation</title>
+  <style>
+    body { font-family: monospace; background: #1a1a2e; color: #e0e0e0; padding: 20px; }
+    canvas { border: 1px solid #444; background: #000; display: block; margin: 10px 0; }
+    .info { margin: 10px 0; padding: 10px; background: #16213e; border-radius: 4px; max-height: 200px; overflow-y: auto; }
+    .ok { color: #4ecca3; }
+    .err { color: #e23e57; }
+    h1 { color: #4ecca3; font-size: 18px; }
+    .controls { margin: 10px 0; }
+    .controls button { background: #16213e; color: #4ecca3; border: 1px solid #4ecca3; padding: 6px 16px; cursor: pointer; font-family: monospace; margin-right: 8px; }
+    .controls button:hover { background: #4ecca3; color: #1a1a2e; }
+    .controls input[type=text] { background: #16213e; color: #e0e0e0; border: 1px solid #444; padding: 6px; width: 400px; font-family: monospace; }
+    .fps { color: #f0c040; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <h1>ThorVG - Pure Clang WASM32 - Lottie Animation</h1>
+  <div class="controls">
+    <input type="text" id="url" value="../../playground/out/assets/lottie/sample.json" placeholder="Lottie JSON URL">
+    <button onclick="loadAnimation()">Load</button>
+    <button onclick="togglePlay()">Pause/Play</button>
+    <span class="fps" id="fpsDisplay"></span>
+  </div>
+  <div class="info" id="log"></div>
+  <canvas id="canvas" width="500" height="500"></canvas>
+
+<script>
+let wasm, instance, memory, canvasPtr, tvgCtx;
+let animPtr, picturePtr, totalFrames, duration, fps;
+let playing = true, startTime = 0, animFrameId = 0;
+const W = 500, H = 500;
+
+function addLog(msg, type = 'ok') {
+  const log = document.getElementById('log');
+  log.innerHTML += `<div class="${type}">${msg}</div>`;
+  log.scrollTop = log.scrollHeight;
+}
+
+function writeString(str) {
+  const encoded = new TextEncoder().encode(str + '\0');
+  const ptr = wasm.malloc(encoded.length);
+  new Uint8Array(memory.buffer, ptr, encoded.length).set(encoded);
+  return ptr;
+}
+
+async function initWasm() {
+  const response = await fetch('build_wasm_clang/thorvg_opt.wasm');
+  const bytes = await response.arrayBuffer();
+  addLog(`WASM loaded: ${(bytes.byteLength / 1024).toFixed(1)}KB`);
+
+  const imports = {
+    env: {
+      setjmp: () => 0,
+      longjmp: () => { console.error('longjmp called'); },
+      emscripten_resize_heap: (requestedSize) => {
+        const mem = instance.exports.memory;
+        const cur = mem.buffer.byteLength;
+        if (requestedSize <= cur) return 1;
+        try { mem.grow(Math.ceil((requestedSize - cur) / 65536)); return 1; }
+        catch(e) { return 0; }
+      },
+      emscripten_get_heap_size: () => instance.exports.memory.buffer.byteLength,
+      abort: () => { throw new Error('abort'); },
+      __cxa_atexit: () => 0,
+      __errno_location: () => 0,
+      strtol: () => 0,
+      vsnprintf: () => 0,
+      vfprintf: () => 0,
+      fputc: () => 0,
+      __strchrnul: (s, c) => {
+        const mem = new Uint8Array(instance.exports.memory.buffer);
+        let i = s;
+        while (mem[i] !== 0 && mem[i] !== (c & 0xff)) i++;
+        return i;
+      },
+      __memrchr: (s, c, n) => {
+        const mem = new Uint8Array(instance.exports.memory.buffer);
+        for (let i = s + n - 1; i >= s; i--) {
+          if (mem[i] === (c & 0xff)) return i;
+        }
+        return 0;
+      },
+    },
+    wasi_snapshot_preview1: {
+      fd_write: () => 0,
+      fd_close: () => 0,
+      fd_seek: () => 0,
+    },
+  };
+
+  const result = await WebAssembly.instantiate(bytes, imports);
+  instance = result.instance;
+  wasm = instance.exports;
+  memory = wasm.memory;
+  addLog(`Instantiated. Exports: ${Object.keys(wasm).length}`);
+
+  // Create SW canvas
+  tvgCtx = wasm.tvg_wcanvas_create(W, H);
+  canvasPtr = wasm.tvg_wcanvas_ptr(tvgCtx);
+  addLog(`Canvas ready: 0x${canvasPtr.toString(16)}`);
+}
+
+async function loadAnimation() {
+  const url = document.getElementById('url').value.trim();
+  if (!url) return;
+
+  addLog(`Fetching: ${url.substring(0, 60)}...`);
+
+  // Cleanup previous animation
+  if (animFrameId) cancelAnimationFrame(animFrameId);
+  if (animPtr) { wasm.tvg_animation_del(animPtr); animPtr = 0; }
+  wasm.tvg_wcanvas_clear(tvgCtx);
+
+  // Fetch lottie data
+  const resp = await fetch(url);
+  const data = new Uint8Array(await resp.arrayBuffer());
+  addLog(`Data: ${(data.length / 1024).toFixed(1)}KB`);
+
+  // Copy data to wasm memory
+  const dataPtr = wasm.malloc(data.length);
+  new Uint8Array(memory.buffer, dataPtr, data.length).set(data);
+
+  const mimetype = 'application/json';
+
+  const mimePtr = writeString(mimetype);
+  const rpathPtr = writeString('');
+
+  // Create animation
+  animPtr = wasm.tvg_animation_new();
+  picturePtr = wasm.tvg_animation_get_picture(animPtr);
+
+  // Load data into picture
+  const loadResult = wasm.tvg_picture_load_data(picturePtr, dataPtr, data.length, mimePtr, rpathPtr, 1);
+  addLog(`Load result: ${loadResult === 0 ? 'OK' : 'FAIL (' + loadResult + ')'}`);
+
+  wasm.free(mimePtr);
+  wasm.free(rpathPtr);
+
+  if (loadResult !== 0) {
+    addLog('Failed to load animation', 'err');
+    return;
+  }
+
+  // Set size to fill canvas
+  wasm.tvg_picture_set_size(picturePtr, W, H);
+
+  // Add to canvas
+  wasm.tvg_canvas_add(canvasPtr, picturePtr);
+
+  // Get animation info
+  // totalFrames is returned via pointer
+  const tfPtr = wasm.malloc(4);
+  const durPtr = wasm.malloc(4);
+  wasm.tvg_animation_get_total_frame(animPtr, tfPtr);
+  wasm.tvg_animation_get_duration(animPtr, durPtr);
+  const view = new DataView(memory.buffer);
+  totalFrames = view.getFloat32(tfPtr, true);
+  duration = view.getFloat32(durPtr, true);
+  fps = totalFrames / duration;
+  wasm.free(tfPtr);
+  wasm.free(durPtr);
+
+  addLog(`Animation: ${totalFrames.toFixed(0)} frames, ${duration.toFixed(2)}s, ${fps.toFixed(1)}fps`);
+
+  // Start playback
+  playing = true;
+  startTime = performance.now();
+  renderLoop();
+}
+
+function renderLoop() {
+  if (!playing) return;
+
+  const elapsed = (performance.now() - startTime) / 1000;
+  const frame = (elapsed * fps) % totalFrames;
+
+  wasm.tvg_animation_set_frame(animPtr, frame);
+  wasm.tvg_canvas_update(canvasPtr);
+  wasm.tvg_canvas_draw(canvasPtr, 0);
+  wasm.tvg_canvas_sync(canvasPtr);
+
+  // Blit to HTML canvas
+  const bufPtr = wasm.tvg_wcanvas_render(tvgCtx);
+  const bufSize = wasm.tvg_wcanvas_render_size(tvgCtx);
+
+  if (bufPtr && bufSize > 0) {
+    const pixels = new Uint8ClampedArray(memory.buffer, bufPtr, bufSize);
+    const imageData = new ImageData(pixels, W, H);
+    document.getElementById('canvas').getContext('2d').putImageData(imageData, 0, 0);
+  }
+
+  // FPS counter
+  const fpsDisplay = document.getElementById('fpsDisplay');
+  fpsDisplay.textContent = `frame: ${frame.toFixed(1)} / ${totalFrames.toFixed(0)}`;
+
+  animFrameId = requestAnimationFrame(renderLoop);
+}
+
+function togglePlay() {
+  playing = !playing;
+  if (playing) {
+    startTime = performance.now();
+    renderLoop();
+  }
+}
+
+initWasm().then(() => loadAnimation());
+</script>
+</body>
+</html>
