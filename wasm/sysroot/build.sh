@@ -11,7 +11,6 @@ LIB="$SCRIPT_DIR/lib/wasm32"
 
 EMSDK_ROOT="${EMSDK:-/Users/jinny/Dev/emsdk}"
 CC="$SCRIPT_DIR/../clang_wasm32_cc_wrapper.sh"
-CXX="$SCRIPT_DIR/../clang_wasm32_wrapper.sh"
 AR="${LLVM_PREFIX:-/opt/homebrew/opt/llvm}/bin/llvm-ar"
 
 MUSL="$EMSDK_ROOT/upstream/emscripten/system/lib/libc/musl"
