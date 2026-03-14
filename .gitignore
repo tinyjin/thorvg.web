@@ -147,5 +147,10 @@ dist
 # Meson build directories
 build_wasm_player/
 build_wasm_wcanvas/
+build_wasm_clang/
+
+# Pure clang wasm build artifacts
+wasm/sysroot/build/
+wasm/sysroot/lib/
 
 # End of https://www.toptal.com/developers/gitignore/api/node
