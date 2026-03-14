@@ -51,7 +51,7 @@ import { Font } from './core/Font';
 import { ThorVGResultCode, ThorVGError, setGlobalErrorHandler, handleError, type ErrorHandler } from './common/errors';
 import * as constants from './common/constants';
 import type { RendererType } from './common/constants';
-import ThorVGModuleFactory from '../dist/thorvg';
+import ThorVGModuleFactory from './loader/thorvg-loader';
 
 const THORVG_VERSION = '__THORVG_VERSION__';
 const THORVG_WASM_URL = 'https://unpkg.com/@thorvg/webcanvas@latest/dist/thorvg.wasm';
