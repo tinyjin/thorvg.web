@@ -10,10 +10,12 @@
 
 set -e
 
-EMSDK_ROOT="${EMSDK:-/Users/jinny/Dev/emsdk}"
-WASM_LD="$EMSDK_ROOT/upstream/bin/wasm-ld"
-LLVM_AR="$EMSDK_ROOT/upstream/bin/llvm-ar"
+LLVM_PREFIX="${LLVM_PREFIX:-/opt/homebrew/opt/llvm}"
+WASM_LD="${WASM_LD:-/opt/homebrew/bin/wasm-ld}"
+LLVM_AR="$LLVM_PREFIX/bin/llvm-ar"
 WASM_OPT="${WASM_OPT:-/Users/jinny/Dev/binaryen/bin/wasm-opt}"
+# emsdk sysroot still needed for C/C++ headers and dlmalloc/libc++
+EMSDK_ROOT="${EMSDK:-/Users/jinny/Dev/emsdk}"
 SYSROOT="$EMSDK_ROOT/upstream/emscripten/cache/sysroot"
 SYSLIB="$SYSROOT/lib/wasm32-emscripten/lto"
 

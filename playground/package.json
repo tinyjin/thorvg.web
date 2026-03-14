@@ -17,8 +17,8 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@thorvg/webcanvas": "latest",
     "@monaco-editor/react": "^4.6.0",
+    "@thorvg/webcanvas": "../packages/webcanvas/",
     "monaco-editor": "^0.55.1",
     "next": "^15.5.10",
     "prism-react-renderer": "^2.4.1",
