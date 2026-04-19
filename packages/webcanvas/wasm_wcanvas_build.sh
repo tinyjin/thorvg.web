@@ -42,7 +42,7 @@ EXPORTED_RUNTIME_METHODS="HEAPU8,HEAP32,HEAPF32,addFunction,removeFunction"
 case "$BACKEND" in
   sw)
     CROSS_FILE="wasm32_sw.txt"
-    ENGINES="sw"
+    ENGINES="cpu"
     LOADERS="lottie,jpg,png,webp,ttf"
     EXTRA="lottie_exp"
     SAVERS="all"
@@ -66,7 +66,7 @@ case "$BACKEND" in
     ;;
   sw-lite)
     CROSS_FILE="wasm32_sw.txt"
-    ENGINES="sw"
+    ENGINES="cpu"
     LOADERS="lottie,png"
     EXTRA=""
     SAVERS=""
