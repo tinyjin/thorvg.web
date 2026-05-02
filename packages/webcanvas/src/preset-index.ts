@@ -252,10 +252,10 @@ export { init, Shape, Scene, Picture, Text, Animation, LinearGradient, RadialGra
 // Re-export types
 export type { CanvasOptions } from './core/Canvas';
 export type { ErrorContext, ErrorHandler } from './common/errors';
-export type { Bounds, Matrix } from './core/Paint';
+export type { Bounds, Matrix, Point } from './core/Paint';
 export type { RectOptions, StrokeOptions } from './core/Shape';
 export type { LoadDataOptions, PictureSize } from './core/Picture';
-export type { TextLayout, TextOutline } from './core/Text';
+export type { TextLayout, TextOutline, TextMetrics, GlyphMetrics } from './core/Text';
 export type { AnimationInfo, AnimationSegment } from './core/Animation';
 export type { LoadFontOptions, FontType } from './core/Font';
 export type { ColorStop } from './core/Fill';

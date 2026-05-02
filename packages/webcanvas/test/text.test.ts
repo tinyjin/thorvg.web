@@ -96,6 +96,44 @@ describe('Text', () => {
     expect(result).toBe(text);
   });
 
+  it('getText returns empty string when no text set', () => {
+    const TVG = getTVG();
+    const text = new TVG.Text();
+    expect(text.getText()).toBe('');
+  });
+
+  it('getText returns the set text content', () => {
+    const TVG = getTVG();
+    const text = new TVG.Text();
+    text.text('Hello World');
+    expect(text.getText()).toBe('Hello World');
+  });
+
+  it('getText supports UTF-8 content', () => {
+    const TVG = getTVG();
+    const text = new TVG.Text();
+    text.text('안녕하세요');
+    expect(text.getText()).toBe('안녕하세요');
+  });
+
+  it('lineCount returns 0 when no text set', () => {
+    const TVG = getTVG();
+    const text = new TVG.Text();
+    expect(text.lineCount()).toBe(0);
+  });
+
+  it('textMetrics returns null when no font set', () => {
+    const TVG = getTVG();
+    const text = new TVG.Text();
+    expect(text.textMetrics()).toBeNull();
+  });
+
+  it('glyphMetrics returns null when no font set', () => {
+    const TVG = getTVG();
+    const text = new TVG.Text();
+    expect(text.glyphMetrics('A')).toBeNull();
+  });
+
   it('font with unregistered name throws ThorVGError', () => {
     const TVG = getTVG();
     const text = new TVG.Text();

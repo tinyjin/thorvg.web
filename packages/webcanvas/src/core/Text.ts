@@ -4,8 +4,9 @@
  */
 
 import { Paint } from './Paint';
+import type { Point } from './Paint';
 import { Fill } from './Fill';
-import { getModule } from '../interop/module';
+import { getModule, allocString } from '../interop/module';
 import { textRegistry } from '../interop/registry';
 import { checkResult } from '../common/errors';
 import { TextWrapMode } from '../common/constants';
@@ -24,6 +25,44 @@ export interface TextLayout {
 export interface TextOutline {
   width: number;
   color: readonly [number, number, number]; // RGB
+}
+
+/**
+ * Font-level vertical metrics for a text object.
+ *
+ * Values reflect the configured font size but do **not** include
+ * any paint-level transformations (translate, scale, rotate).
+ *
+ * @category Text
+ */
+export interface TextMetrics {
+  /** Distance from the baseline to the top of the tallest glyph (positive). */
+  ascent: number;
+  /** Distance from the baseline to the bottom of the lowest glyph (negative per TTF convention). */
+  descent: number;
+  /** Additional spacing recommended between consecutive lines (leading). */
+  linegap: number;
+  /** Total line advance: ascent − descent + linegap. */
+  advance: number;
+}
+
+/**
+ * Layout metrics for an individual glyph.
+ *
+ * Values reflect the configured font size but do **not** include
+ * any paint-level transformations (translate, scale, rotate).
+ *
+ * @category Text
+ */
+export interface GlyphMetrics {
+  /** Horizontal advance — the distance the pen moves along the baseline after this glyph. */
+  advance: number;
+  /** Bearing from the origin to the glyph's visible bound along the inline-start direction. */
+  bearing: number;
+  /** Minimum point of the glyph bounding box in local glyph space. */
+  min: Point;
+  /** Maximum point of the glyph bounding box in local glyph space. */
+  max: Point;
 }
 
 /**
@@ -234,6 +273,117 @@ export class Text extends Paint {
     const result = Module._tvg_text_set_outline(this.ptr, width, r, g, b);
     checkResult(result, 'outline');
     return this;
+  }
+
+  /**
+   * Get the current text content.
+   * @returns The UTF-8 text string, or an empty string if no text has been set.
+   */
+  public getText(): string {
+    const Module = getModule();
+    const ptr = Module._tvg_text_get_text(this.ptr);
+    if (!ptr) return '';
+
+    // Read null-terminated UTF-8 string from WASM memory
+    let end = ptr;
+    while (Module.HEAPU8[end] !== 0) end++;
+    const bytes = Module.HEAPU8.subarray(ptr, end);
+    return new TextDecoder().decode(bytes);
+  }
+
+  /**
+   * Get the number of lines after layout and wrapping.
+   *
+   * Reflects the current wrapping configuration set by {@link wrap}.
+   * Returns 0 if no text or font has been set.
+   */
+  public lineCount(): number {
+    const Module = getModule();
+    return Module._tvg_text_line_count(this.ptr);
+  }
+
+  /**
+   * Get font-level vertical metrics for this text object.
+   *
+   * The returned values reflect the font size set via {@link fontSize}
+   * but do **not** include paint-level transformations.
+   *
+   * @returns Font metrics (ascent, descent, linegap, advance), or `null` if no font or size has been set.
+   *
+   * @example
+   * ```typescript
+   * const text = new TVG.Text();
+   * text.font('Roboto').fontSize(48).text('Hello');
+   *
+   * const m = text.textMetrics();
+   * if (m) {
+   *   console.log(`line height: ${m.advance}`);
+   * }
+   * ```
+   */
+  public textMetrics(): TextMetrics | null {
+    const Module = getModule();
+    // Tvg_Text_Metrics: 4 floats (ascent, descent, linegap, advance) = 16 bytes
+    const buf = Module._malloc(16);
+
+    try {
+      const result = Module._tvg_text_get_text_metrics(this.ptr, buf);
+      if (result !== 0) return null;
+
+      const view = new Float32Array(Module.HEAPF32.buffer, buf, 4);
+      return {
+        ascent: view[0]!,
+        descent: view[1]!,
+        linegap: view[2]!,
+        advance: view[3]!,
+      };
+    } finally {
+      Module._free(buf);
+    }
+  }
+
+  /**
+   * Get layout metrics for a single glyph.
+   *
+   * The returned values reflect the font size set via {@link fontSize}
+   * but do **not** include paint-level transformations.
+   *
+   * @param ch - A single UTF-8 character.
+   * @returns Glyph metrics (advance, bearing, bounding box), or `null` if the font/size is
+   *          not set or the character is unsupported.
+   *
+   * @example
+   * ```typescript
+   * const text = new TVG.Text();
+   * text.font('Roboto').fontSize(48);
+   *
+   * const g = text.glyphMetrics('A');
+   * if (g) {
+   *   console.log(`advance: ${g.advance}, width: ${g.max.x - g.min.x}`);
+   * }
+   * ```
+   */
+  public glyphMetrics(ch: string): GlyphMetrics | null {
+    const Module = getModule();
+    const chPtr = allocString(Module, ch);
+    // Tvg_Glyph_Metrics: advance(f32) + bearing(f32) + min(2×f32) + max(2×f32) = 24 bytes
+    const buf = Module._malloc(24);
+
+    try {
+      const result = Module._tvg_text_get_glyph_metrics(this.ptr, chPtr, buf);
+      if (result !== 0) return null;
+
+      const view = new Float32Array(Module.HEAPF32.buffer, buf, 6);
+      return {
+        advance: view[0]!,
+        bearing: view[1]!,
+        min: { x: view[2]!, y: view[3]! },
+        max: { x: view[4]!, y: view[5]! },
+      };
+    } finally {
+      Module._free(chPtr);
+      Module._free(buf);
+    }
   }
 }
 

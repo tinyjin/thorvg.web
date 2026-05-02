@@ -192,6 +192,10 @@ export interface ThorVGCAPI {
   _tvg_text_set_outline(text: number, width: number, r: number, g: number, b: number): number;
   _tvg_text_set_gradient(text: number, gradient: number): number;
   _tvg_text_set_stroke_gradient(text: number, gradient: number): number;
+  _tvg_text_get_text(text: number): number;
+  _tvg_text_line_count(text: number): number;
+  _tvg_text_get_text_metrics(text: number, metricsPtr: number): number;
+  _tvg_text_get_glyph_metrics(text: number, chPtr: number, metricsPtr: number): number;
 
   // Font functions
   _tvg_font_load_data(name: number, data: number, size: number, mimetype: number, copy: number): number;

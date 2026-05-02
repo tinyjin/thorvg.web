@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>ThorVG WebCanvas - Text Metrics API</title>
+    <style>
+        * { margin: 0; box-sizing: border-box; }
+        body { font-family: system-ui, sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 24px; }
+        h1 { font-size: 20px; margin-bottom: 16px; color: #fff; }
+        .grid { display: grid; grid-template-columns: 320px 1fr; gap: 20px; }
+        .panel { background: #16213e; border-radius: 8px; padding: 16px; }
+        .panel h2 { font-size: 14px; color: #8fa8d6; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        canvas { border: 1px solid #2a3a5e; border-radius: 6px; background: #fff; display: block; width: 100%; }
+
+        .field { margin-bottom: 10px; }
+        .field label { display: block; font-size: 12px; color: #8fa8d6; margin-bottom: 4px; }
+        .field input, .field select, .field textarea {
+            width: 100%; padding: 6px 8px; background: #0f3460; border: 1px solid #2a3a5e;
+            border-radius: 4px; color: #e0e0e0; font-size: 13px;
+        }
+        .field textarea { min-height: 48px; font-family: inherit; resize: vertical; }
+        .field input[type="range"] { padding: 0; }
+        .row { display: flex; gap: 8px; }
+        .row .field { flex: 1; }
+
+        .metrics-box { background: #0f3460; border-radius: 6px; padding: 12px; font-family: 'SF Mono', monospace; font-size: 12px; line-height: 1.6; white-space: pre-wrap; word-break: break-all; max-height: 300px; overflow-y: auto; }
+        .metrics-box .label { color: #5e81ac; }
+        .metrics-box .value { color: #a3be8c; }
+        .metrics-box .sep { color: #4c566a; }
+
+        .glyph-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 4px; margin-top: 8px; }
+        .glyph-card { background: #0f3460; border-radius: 4px; padding: 6px; text-align: center; font-size: 11px; line-height: 1.4; }
+        .glyph-card .char { font-size: 20px; color: #fff; }
+        .glyph-card .adv { color: #a3be8c; }
+        .glyph-card .brg { color: #ebcb8b; }
+
+        #log { background: #0a0a1a; border-radius: 6px; padding: 10px; font-family: 'SF Mono', monospace; font-size: 11px; line-height: 1.5; max-height: 140px; overflow-y: auto; color: #6a7a9a; }
+        #log .ok { color: #a3be8c; }
+        #log .err { color: #bf616a; }
+
+        button { padding: 6px 14px; background: #e94560; border: none; border-radius: 4px; color: #fff; cursor: pointer; font-size: 13px; }
+        button:hover { background: #c73e54; }
+        button:disabled { background: #4c566a; cursor: default; }
+        .btn-row { display: flex; gap: 8px; margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+    <h1>Text Metrics API — getText / lineCount / textMetrics / glyphMetrics</h1>
+
+    <div class="grid">
+        <!-- Left panel: controls -->
+        <div>
+            <div class="panel">
+                <h2>Setup</h2>
+                <div class="row">
+                    <div class="field">
+                        <label>Backend</label>
+                        <select id="backend">
+                            <option value="sw">Software</option>
+                            <option value="gl" selected>WebGL</option>
+                            <option value="wg">WebGPU</option>
+                        </select>
+                    </div>
+                    <div class="field" style="display:flex;align-items:flex-end;">
+                        <button id="btnInit" onclick="doInit()">Initialize</button>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>Custom Font (.ttf) — optional</label>
+                    <input type="file" id="fontInput" accept=".ttf" onchange="loadFont(event)">
+                </div>
+            </div>
+
+            <div class="panel" style="margin-top:12px;">
+                <h2>Text</h2>
+                <div class="field">
+                    <label>Content</label>
+                    <textarea id="textInput" oninput="redraw()">Hello ThorVG!
+The quick brown fox jumps over the lazy dog.</textarea>
+                </div>
+                <div class="row">
+                    <div class="field">
+                        <label>Font Size: <span id="fontSizeVal">36</span></label>
+                        <input type="range" id="fontSize" min="8" max="120" value="36" oninput="fontSizeVal.textContent=this.value;redraw()">
+                    </div>
+                    <div class="field">
+                        <label>Color</label>
+                        <input type="color" id="textColor" value="#333333" oninput="redraw()">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="field">
+                        <label>Layout Width</label>
+                        <input type="number" id="layoutWidth" min="0" max="1200" value="500" oninput="redraw()">
+                    </div>
+                    <div class="field">
+                        <label>Wrap</label>
+                        <select id="wrapMode" onchange="redraw()">
+                            <option value="0">None</option>
+                            <option value="1">Character</option>
+                            <option value="2" selected>Word</option>
+                            <option value="3">Smart</option>
+                            <option value="4">Ellipsis</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="field">
+                        <label>Letter Spacing: <span id="lsVal">1.0</span></label>
+                        <input type="range" id="letterSpacing" min="0.5" max="3" step="0.05" value="1" oninput="lsVal.textContent=parseFloat(this.value).toFixed(2);redraw()">
+                    </div>
+                    <div class="field">
+                        <label>Line Spacing: <span id="lineSpVal">1.0</span></label>
+                        <input type="range" id="lineSpacing" min="0.5" max="3" step="0.05" value="1" oninput="lineSpVal.textContent=parseFloat(this.value).toFixed(2);redraw()">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="field">
+                        <label>Italic: <span id="italicVal">0.00</span></label>
+                        <input type="range" id="italic" min="0" max="0.5" step="0.01" value="0" oninput="italicVal.textContent=parseFloat(this.value).toFixed(2);redraw()">
+                    </div>
+                    <div class="field">
+                        <label>Outline: <span id="outlineVal">0</span></label>
+                        <input type="range" id="outlineWidth" min="0" max="8" step="0.5" value="0" oninput="outlineVal.textContent=this.value;redraw()">
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel" style="margin-top:12px;">
+                <h2>Font Metrics (textMetrics)</h2>
+                <div id="textMetricsBox" class="metrics-box">Initialize first.</div>
+            </div>
+
+            <div class="panel" style="margin-top:12px;">
+                <h2>Log</h2>
+                <div id="log"></div>
+            </div>
+        </div>
+
+        <!-- Right panel: canvas + glyph details -->
+        <div>
+            <div class="panel">
+                <h2>Canvas</h2>
+                <canvas id="canvas" width="800" height="500"></canvas>
+                <div style="margin-top:8px;font-size:12px;color:#5e81ac;">
+                    <span id="readback"></span>
+                </div>
+            </div>
+
+            <div class="panel" style="margin-top:12px;">
+                <h2>Per-Glyph Metrics (glyphMetrics)</h2>
+                <div class="field">
+                    <label>Characters to measure</label>
+                    <input type="text" id="glyphChars" value="ABCDEFGHIJKLMabcdefghijklm0123456789" oninput="updateGlyphGrid()">
+                </div>
+                <div id="glyphGrid" class="glyph-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import ThorVG from '../packages/webcanvas/dist/webcanvas.esm.js';
+
+        let TVG = null;
+        let canvas = null;
+        let fontName = 'default';
+        let textObj = null;
+
+        // ── Logging ──
+        function log(msg, type) {
+            const el = document.getElementById('log');
+            const span = document.createElement('span');
+            span.className = type || '';
+            span.textContent = msg + '\n';
+            el.appendChild(span);
+            el.scrollTop = el.scrollHeight;
+            console.log(msg);
+        }
+
+        // ─�� Helpers ──
+        function hexToRgb(hex) {
+            return [parseInt(hex.substr(1,2),16), parseInt(hex.substr(3,2),16), parseInt(hex.substr(5,2),16)];
+        }
+
+        function fmtNum(n) {
+            return n == null ? '—' : Number(n).toFixed(2);
+        }
+
+        // ── Init ──
+        window.doInit = async function() {
+            const renderer = document.getElementById('backend').value;
+            log(`Initializing (${renderer})...`);
+            try {
+                TVG = await ThorVG.init({
+                    renderer,
+                    locateFile: (p) => '../packages/webcanvas/dist/' + p.split('/').pop()
+                });
+                canvas = new TVG.Canvas('#canvas', { width: 800, height: 500 });
+                document.getElementById('btnInit').disabled = true;
+                log('ThorVG ready — default font loaded.', 'ok');
+                redraw();
+            } catch (e) {
+                log('Init failed: ' + e.message, 'err');
+            }
+        };
+
+        // ── Font ──
+        window.loadFont = async function(e) {
+            if (!TVG) { log('Initialize first!', 'err'); return; }
+            const file = e.target.files[0];
+            if (!file) return;
+            try {
+                const data = new Uint8Array(await file.arrayBuffer());
+                fontName = file.name.replace(/\.[^/.]+$/, '');
+                TVG.Font.load(fontName, data, { type: 'ttf' });
+                log(`Font "${fontName}" loaded.`, 'ok');
+                redraw();
+            } catch (err) {
+                log('Font load error: ' + err.message, 'err');
+                fontName = 'default';
+            }
+        };
+
+        // ── Draw + Metrics ──
+        window.redraw = function() {
+            if (!canvas || !TVG) return;
+
+            canvas.clear();
+
+            const content = document.getElementById('textInput').value;
+            if (!content) { canvas.render(); return; }
+
+            textObj = new TVG.Text();
+            textObj.font(fontName);
+            textObj.fontSize(parseFloat(document.getElementById('fontSize').value));
+            textObj.text(content);
+
+            // Color
+            const [r, g, b] = hexToRgb(document.getElementById('textColor').value);
+            textObj.fill(r, g, b);
+
+            // Layout + wrap
+            const lw = parseFloat(document.getElementById('layoutWidth').value);
+            textObj.layout(lw, 0);
+            textObj.wrap(parseInt(document.getElementById('wrapMode').value));
+
+            // Spacing
+            textObj.spacing(
+                parseFloat(document.getElementById('letterSpacing').value),
+                parseFloat(document.getElementById('lineSpacing').value)
+            );
+
+            // Italic
+            const italic = parseFloat(document.getElementById('italic').value);
+            if (italic > 0) textObj.italic(italic);
+
+            // Outline
+            const ow = parseFloat(document.getElementById('outlineWidth').value);
+            if (ow > 0) textObj.outline(ow, 0, 0, 0);
+
+            textObj.translate(24, 24);
+
+            canvas.add(textObj);
+            canvas.render();
+
+            // ── Read back with new APIs ──
+            showMetrics();
+            updateGlyphGrid();
+        };
+
+        function showMetrics() {
+            if (!textObj) return;
+
+            // getText()
+            const gotText = textObj.getText();
+
+            // lineCount()
+            const lines = textObj.lineCount();
+
+            // textMetrics()
+            const tm = textObj.textMetrics();
+
+            // Readback line under canvas
+            document.getElementById('readback').textContent =
+                `getText() → "${gotText.length > 60 ? gotText.slice(0, 60) + '…' : gotText}"  |  lineCount() → ${lines}`;
+
+            // Text metrics panel
+            const box = document.getElementById('textMetricsBox');
+            if (!tm) {
+                box.textContent = 'textMetrics() returned null — no font/size set.';
+                return;
+            }
+            box.innerHTML =
+                `<span class="label">ascent </span> <span class="value">${fmtNum(tm.ascent)}</span>\n` +
+                `<span class="label">descent</span> <span class="value">${fmtNum(tm.descent)}</span>\n` +
+                `<span class="label">linegap</span> <span class="value">${fmtNum(tm.linegap)}</span>\n` +
+                `<span class="label">advance</span> <span class="value">${fmtNum(tm.advance)}</span>  <span class="sep">(= line height)</span>\n` +
+                `<span class="sep">────────────────────────</span>\n` +
+                `<span class="label">lineCount</span> <span class="value">${lines}</span>`;
+        }
+
+        // ── Per-Glyph Grid ──
+        window.updateGlyphGrid = function() {
+            const grid = document.getElementById('glyphGrid');
+            if (!textObj || !TVG) { grid.innerHTML = '<span style="color:#5e81ac">Initialize and draw first.</span>'; return; }
+
+            const chars = document.getElementById('glyphChars').value;
+            grid.innerHTML = '';
+
+            let totalAdvance = 0;
+            for (const ch of chars) {
+                const gm = textObj.glyphMetrics(ch);
+
+                const card = document.createElement('div');
+                card.className = 'glyph-card';
+
+                if (gm) {
+                    totalAdvance += gm.advance;
+                    const w = (gm.max.x - gm.min.x).toFixed(1);
+                    const h = (gm.max.y - gm.min.y).toFixed(1);
+                    card.innerHTML =
+                        `<div class="char">${ch}</div>` +
+                        `<div class="adv">adv ${gm.advance.toFixed(1)}</div>` +
+                        `<div class="brg">brg ${gm.bearing.toFixed(1)}</div>` +
+                        `<div style="color:#88c0d0">${w}×${h}</div>`;
+                } else {
+                    card.innerHTML =
+                        `<div class="char">${ch}</div>` +
+                        `<div style="color:#bf616a">n/a</div>`;
+                }
+                grid.appendChild(card);
+            }
+
+            // Summary
+            if (chars.length > 0) {
+                const summary = document.createElement('div');
+                summary.style.cssText = 'grid-column:1/-1;padding:8px;color:#8fa8d6;font-size:12px;';
+                summary.textContent = `${chars.length} glyphs measured — total advance: ${totalAdvance.toFixed(1)}px`;
+                grid.appendChild(summary);
+            }
+        };
+
+        log('Click "Initialize" to start.');
+    </script>
+</body>
+</html>
