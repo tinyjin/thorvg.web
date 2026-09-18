@@ -13,8 +13,8 @@ exe_suffix = 'js'
 [built-in options]
 cpp_std = 'c++17'
 debug = false
-cpp_args = ['-fno-rtti', '-DEMSCRIPTEN_HAS_UNBOUND_TYPE_NAMES=0', '-Wshift-negative-value', '-flto', '-Oz', '-fno-exceptions']
-cpp_link_args = ['-fno-rtti', '-Wshift-negative-value', '-flto', '-Oz', '-fno-exceptions', '--bind', '-sDYNAMIC_EXECUTION=0', '--closure=1', '-sWASM=1', '-sALLOW_MEMORY_GROWTH=1', '-sEXPORT_ES6=1', '-sENVIRONMENT=web,worker', '-sFILESYSTEM=0', '-sMODULARIZE=1', '-sEXPORTED_RUNTIME_METHODS=HEAPU8,HEAP32,HEAPU32,HEAPF32', '-sMAX_WEBGL_VERSION=2']
+cpp_args = ['-fno-rtti', '-DNDEBUG', '-DEMSCRIPTEN_HAS_UNBOUND_TYPE_NAMES=0', '-Wshift-negative-value', '-flto', '-Oz', '-fno-exceptions']
+cpp_link_args = ['-fno-rtti', '-Wshift-negative-value', '-flto', '-Oz', '-fno-exceptions', '--bind', '-sDYNAMIC_EXECUTION=0', '--closure=1', '-sWASM=1', '-sALLOW_MEMORY_GROWTH=1', '-sEXPORT_ES6=1', '-sENVIRONMENT=web,worker', '-sFILESYSTEM=0', '-sMODULARIZE=1', '-sINCOMING_MODULE_JS_API=[locateFile]', '-sHTML5_SUPPORT_DEFERRING_USER_SENSITIVE_REQUESTS=0', '-sBINARYEN_EXTRA_PASSES=--converge', '-sGL_TRACK_ERRORS=0', '-sGL_ENABLE_GET_PROC_ADDRESS=0', '-sGL_EXTENSIONS_IN_PREFIXED_FORMAT=0', '-sGL_EMULATE_GLES_VERSION_STRING_FORMAT=0', '-sEXPORTED_RUNTIME_METHODS=HEAPU8,HEAP32,HEAPU32,HEAPF32', '-sMAX_WEBGL_VERSION=2']
 
 [host_machine]
 system = 'emscripten'
